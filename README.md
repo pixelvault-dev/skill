@@ -5,7 +5,7 @@ An agent skill that lets AI coding assistants upload and host images via [PixelV
 ## Install
 
 ```bash
-npx skills add pixelvault/pixelvault-skill
+npx skills add pixelvault-dev/pixelvault-skill
 ```
 
 ## What It Does
