@@ -1,0 +1,33 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "pixelvault",
+  "metadata": {
+    "description": "Agent-first image hosting. Upload screenshots, diagrams, and generated images from your coding workflow — get instant CDN URLs back."
+  },
+  "owner": {
+    "name": "PixelVault",
+    "email": "hello@pixelvault.dev"
+  },
+  "plugins": [
+    {
+      "name": "pixelvault",
+      "description": "Upload, manage, and serve images via PixelVault — agent-first image hosting for developers and AI coding agents.",
+      "version": "1.0.0",
+      "author": {
+        "name": "PixelVault",
+        "email": "hello@pixelvault.dev"
+      },
+      "source": "./",
+      "category": "development",
+      "homepage": "https://pixelvault.dev",
+      "tags": [
+        "image-hosting",
+        "cdn",
+        "upload",
+        "screenshots",
+        "agent-first",
+        "developer-tools"
+      ]
+    }
+  ]
+}

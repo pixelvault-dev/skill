@@ -1,0 +1,12 @@
+{
+  "name": "pixelvault",
+  "description": "Upload, manage, and serve images via PixelVault — agent-first image hosting for developers and AI coding agents.",
+  "version": "1.0.0",
+  "author": {
+    "name": "PixelVault",
+    "email": "hello@pixelvault.dev"
+  },
+  "homepage": "https://pixelvault.dev",
+  "repository": "https://github.com/pixelvault-dev/skill",
+  "skills": "./.claude/skills"
+}
