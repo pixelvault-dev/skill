@@ -8,5 +8,5 @@
   },
   "homepage": "https://pixelvault.dev",
   "repository": "https://github.com/pixelvault-dev/skill",
-  "skills": "./.claude/skills"
+  "skills": "./skills"
 }

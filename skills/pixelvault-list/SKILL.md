@@ -1,6 +1,6 @@
 ---
 name: pixelvault-list
-description: List recently uploaded images on PixelVault with their CDN URLs. Use when the user asks to see their uploads, find an image URL, or check what images they have hosted.
+description: List recently uploaded images on PixelVault with their CDN URLs. Use when the user asks to "see my uploads", "find that image URL", "what images have I hosted", "list my PixelVault images", or needs the link to a previously uploaded image.
 args:
   - name: options
     description: Optional flags like --json for full metadata or --per-page 50 for more results

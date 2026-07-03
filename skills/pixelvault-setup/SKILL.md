@@ -1,6 +1,6 @@
 ---
 name: pixelvault-setup
-description: Set up PixelVault CLI — install the CLI and configure API key authentication. Use when the user wants to configure PixelVault, set up image hosting, or when pixelvault-upload fails due to missing auth.
+description: Set up PixelVault CLI — install the CLI and configure API key authentication. Use when the user wants to configure PixelVault, "set up image hosting", "connect PixelVault", get an API key for image uploads, or when pixelvault-upload fails due to missing auth.
 disable-model-invocation: true
 ---
 

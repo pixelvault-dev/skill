@@ -1,6 +1,6 @@
 ---
 name: pixelvault-upload
-description: Upload image files to PixelVault and get CDN URLs. Use when the user asks to upload, host, or share an image — screenshots, diagrams, generated images, build artifacts. Also use when you generate or save an image and need a shareable URL.
+description: Upload image files to PixelVault and get a public CDN URL back. Use when the user says "screenshot this and host it", "upload this image", "host this mockup", "give me a URL for this diagram", "attach this screenshot to the PR/issue", or when you generate, render, or save an image (screenshot, diagram, chart, build artifact) that needs a shareable link. Ideal for embedding images in GitHub PRs, issues, and comments.
 args:
   - name: files
     description: File path(s) or glob pattern to upload (e.g. screenshot.png, ./images/*.jpg)
