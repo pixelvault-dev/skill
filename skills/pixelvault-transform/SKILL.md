@@ -43,7 +43,7 @@ pixelvault get img_xyz -o cut.png -t "segment=foreground"  # download a transpar
 | `fmt` | `webp` \| `avif` \| `jpg` \| `png` \| `auto` | Output format. `auto` negotiates WebP/AVIF. |
 | `q` | `auto` \| `60` \| `75` \| `85` | Quality. |
 | `segment` | `foreground` | AI background removal → transparent cut-out. |
-| `background` | `white`, `#ffaa00`, `rgba(...)` | Fill behind a removed background. |
+| `background` | `white`, `%23ffaa00` (hex — percent-encode the `#`), `rgba(...)` | Fill behind a removed background. |
 | `gravity` | `auto` \| `face` \| `left` \| `right` \| `top` \| `bottom` | Crop gravity (with `fit=cover`/`crop`). `face` is face-aware. |
 | `zoom` | `0.0`–`1.0` | Face-crop tightness (with `gravity=face`). |
 | `blur` | `0`–`250` | Gaussian blur. |
@@ -70,6 +70,7 @@ pixelvault get img_xyz -o cut.png -t "segment=foreground"  # download a transpar
 ## Notes
 
 - **Invalid params are ignored** — you always get an image back, never an error.
+- **Percent-encode reserved characters** when building the URL by hand — most importantly a hex `background` (`#ffaa00` → `%23ffaa00`), and commas/parens in `rgba(...)`. The CLI's `pixelvault get -t "..."` does this encoding for you.
 - **`tile`/`segment`/effects apply to your project images**, not the anonymous
   playground.
 - **`tile`** must reference another **raster** image (png/jpg/webp/avif) in the
