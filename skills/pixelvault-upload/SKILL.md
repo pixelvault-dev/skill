@@ -75,3 +75,10 @@ pixelvault upload diagram.svg --json
 # Bulk upload
 pixelvault upload ./assets/*.png --folder assets
 ```
+
+## Transform the result
+
+Every returned URL supports on-the-fly transforms — just append query params (no
+re-upload): `?w=400` (thumbnail), `?fmt=webp`, `?segment=foreground` (transparent
+cut-out), `?saturation=0` (grayscale), `?tile=logo.png` (watermark). For the full
+vocabulary use `/pixelvault-transform`.

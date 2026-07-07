@@ -42,6 +42,7 @@ Agent skill for image hosting: upload an image and get a permanent CDN URL back 
 | `/pixelvault-upload <file>` | Upload image(s) and get CDN URLs |
 | `/pixelvault-setup` | Install CLI and configure API key |
 | `/pixelvault-list` | List recently uploaded images |
+| `/pixelvault-transform` | Resize, convert, remove backgrounds, add effects or a watermark — via URL params |
 
 ## Quick Start
 
