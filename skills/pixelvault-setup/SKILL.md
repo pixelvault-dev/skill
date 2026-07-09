@@ -49,13 +49,21 @@ export PIXELVAULT_API_KEY=pv_live_xxx
 ```
 
 **Option C — Create new account:**
-If the user doesn't have an account, register:
+If the user doesn't have an account, register. Ask the user for their email
+address, then create a **passwordless** account — do NOT invent or prompt for a
+password:
 
 ```bash
-pixelvault register
+pixelvault register --email <their-email> --passwordless
 ```
 
-This will prompt for email and password, create the account, and auto-save the API key.
+This creates the account, saves the API key automatically, and needs no
+password. The user can set a password later to enable dashboard login via the
+web "Forgot password" flow (https://pixelvault.dev/forgot-password) — an API key
+is all that's needed for uploads.
+
+Note: uploads are limited until the user verifies their email, so use a real
+address they control. Disposable/temp-mail domains are rejected.
 
 ### 4. Verify
 
