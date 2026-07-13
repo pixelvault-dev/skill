@@ -41,9 +41,13 @@ pixelvault upload <file> --folder <folder>
 
 # Multiple files (shell glob)
 pixelvault upload *.png --folder screenshots
+
+# Private — returns a signed URL only holders of the link can open
+pixelvault upload mockup.png --private
+pixelvault upload mockup.png --private --expires 7d
 ```
 
-4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. Each URL is permanent and globally cached.
+4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. A public URL is permanent and globally cached; a `--private` URL is a signed link that expires (default 7 days).
 
 ## Output Contract
 
@@ -58,6 +62,7 @@ pixelvault upload *.png --folder screenshots
 | `command not found: pixelvault` | Tell user to `npm install -g pixelvault-cli` |
 | `No API key configured` | Tell user to run `/pixelvault-setup` or set `PIXELVAULT_API_KEY` |
 | `401 Unauthorized` | API key is invalid — tell user to run `pixelvault login` |
+| `402 ... private images` | Free plan's private-image limit reached — tell user to delete some or upgrade |
 | `413 Payload Too Large` | File exceeds plan limit (5 MB free, 50 MB paid) |
 | `415 Unsupported Media Type` | File is not a supported image format |
 
@@ -74,7 +79,25 @@ pixelvault upload diagram.svg --json
 
 # Bulk upload
 pixelvault upload ./assets/*.png --folder assets
+
+# Private mockup, link valid for 24 hours
+pixelvault upload mockup.png --private --expires 24h
+# → https://img.pixelvault.dev/proj_abc/cp/i/img_xyz.png?token=…&expires=…
 ```
+
+## Private uploads
+
+Use `--private` when the image shouldn't be publicly guessable — an internal
+mockup, a CI screenshot, anything you only want to share via the link itself.
+The returned URL is a **signed** URL: it works for anyone who has the full link
+and stops working when it expires.
+
+- `--private` alone → default lifetime (7 days).
+- `--private --expires <duration>` → custom lifetime. Accepts `30m`, `12h`,
+  `7d`, or a number of seconds. Min 60s, max 30d.
+- Requires a **secret** API key (the default from `pixelvault login` / setup);
+  publishable keys can't create private uploads.
+- `--expires` only applies together with `--private`.
 
 ## Transform the result
 
