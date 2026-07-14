@@ -31,64 +31,92 @@ image at a durable link.
 2. **PixelVault CLI, configured** — for hosting. If `pixelvault` isn't installed,
    run `npm install -g pixelvault-cli`; if no key is configured, run
    `/pixelvault-setup` or set `PIXELVAULT_API_KEY`.
-3. **`jq`** and **`base64`** — standard tools used to extract and decode the image.
+3. **`jq`, `base64`, `curl`** — used to build the request safely and decode the image.
 
 These are **authoring-time** credentials — they belong in your shell/`.env`, never
 in a deployed site or client bundle. What ships is only the resulting CDN URL.
 
 ## Steps
 
-1. **Pick a model.** Only image-*output* models work (OpenRouter routes image
+Run these in order. Each step fails loudly so an agent never proceeds with a
+missing key or a broken file.
+
+1. **Preflight** — verify tools + auth *before* spending a generation call:
+
+   ```bash
+   : "${OPENROUTER_API_KEY:?set OPENROUTER_API_KEY — https://openrouter.ai/keys}"
+   for t in curl jq base64 pixelvault; do
+     command -v "$t" >/dev/null || { echo "missing required tool: $t"; exit 1; }
+   done
+   pixelvault whoami --json >/dev/null 2>&1 \
+     || { echo "PixelVault not authenticated — run /pixelvault-setup"; exit 1; }
+   ```
+
+2. **Pick a model.** Only image-*output* models work (OpenRouter routes image
    generation through the chat API's `modalities`). The default,
    `google/gemini-3.1-flash-image`, is fast and cheap; `google/gemini-3-pro-image`
    ("Nano Banana Pro") is higher fidelity. Slugs change — list current ones with:
 
    ```bash
-   curl -s https://openrouter.ai/api/v1/models \
+   curl -fsS https://openrouter.ai/api/v1/models \
      | jq -r '.data[] | select(.architecture.output_modalities // [] | index("image")) | .id'
    ```
 
-2. **Generate** the image and decode it to a file:
+3. **Generate.** Build the request body with `jq` so the prompt is always
+   JSON-safe (quotes, apostrophes, and newlines in art prompts won't break it),
+   fail on HTTP errors (`-fsS`), and extract the image with `jq -er` so a missing
+   image is caught instead of silently decoding to garbage:
 
    ```bash
-   curl -s https://openrouter.ai/api/v1/chat/completions \
+   MODEL="${MODEL:-google/gemini-3.1-flash-image}"
+   PROMPT="a flat vector blog hero, a robot writing at a laptop, soft gradient, 16:9, no text"
+
+   body="$(jq -n --arg m "$MODEL" --arg p "$PROMPT" \
+     '{model:$m, modalities:["image","text"], messages:[{role:"user", content:$p}]}')"
+
+   resp="$(curl -fsS https://openrouter.ai/api/v1/chat/completions \
      -H "Authorization: Bearer $OPENROUTER_API_KEY" \
      -H "Content-Type: application/json" \
-     -d '{
-       "model": "google/gemini-3.1-flash-image",
-       "modalities": ["image", "text"],
-       "messages": [{ "role": "user", "content": "<PROMPT>" }]
-     }' \
-     | jq -r '.choices[0].message.images[0].image_url.url' \
-     | sed 's/^data:image\/[^;]*;base64,//' \
-     | base64 -d > gen.png
+     -d "$body")" || { echo "OpenRouter request failed"; exit 1; }
+
+   # -e makes jq exit non-zero when the path is absent/null (i.e. an error response)
+   data_url="$(printf '%s' "$resp" | jq -er '.choices[0].message.images[0].image_url.url')" \
+     || { printf '%s\n' "$resp" | jq -r '.error.message // "no image in response"'; exit 1; }
+
+   # Decode to a temp file (no clobbering the CWD) and confirm it's non-empty
+   img="$(mktemp -t pv-gen).png"
+   printf '%s' "$data_url" | sed 's/^data:image\/[^;]*;base64,//' | base64 -d > "$img"
+   test -s "$img" || { echo "decoded image is empty — aborting"; exit 1; }
    ```
 
-   If `gen.png` is empty, the model returned no image — check the raw response for
-   an `error`, and confirm the slug still emits images (step 1).
+   > `base64 -d` reads stdin on both GNU and macOS/BSD. If an older BSD build
+   > rejects `-d`, use `-D`.
 
-3. **Host** it on PixelVault and get the permanent URL (reuses `/pixelvault-upload`):
+4. **Host** it on PixelVault (reuses `/pixelvault-upload`):
 
    ```bash
-   pixelvault upload gen.png
+   pixelvault upload "$img"
    # → https://img.pixelvault.dev/proj_abc/img_xyz.png
    ```
 
-4. **Report** the URL. It's permanent and globally cached. Need an OG card or a
-   thumbnail? Add transform params to the same URL — no re-upload:
-   `…img_xyz.png?w=1200&h=630&fmt=auto` (social card),
-   `…img_xyz.png?w=700&fmt=auto&q=auto` (inline). See `/pixelvault-transform`.
+5. **Report** the permanent URL. Need an OG card or a thumbnail? Add transform
+   params to the same URL — no re-upload: `…img_xyz.png?w=1200&h=630&fmt=auto`
+   (social card), `…img_xyz.png?w=700&fmt=auto&q=auto` (inline). See
+   `/pixelvault-transform`.
 
 ## Error Handling
 
 | Error | Action |
 |-------|--------|
-| `OPENROUTER_API_KEY` unset | Tell the user to get a key at openrouter.ai/keys and export it |
-| Empty `gen.png` / no `images` in response | Model returned no image — verify the slug is an image-output model (step 1); inspect the response `error` |
-| `404 No endpoints found for <model>` | The slug is stale or not image-capable — pick one from the step-1 list |
+| `OPENROUTER_API_KEY` unset | Get a key at openrouter.ai/keys and export it |
+| `curl` fails / non-200 from OpenRouter | Inspect `$resp` for `.error.message`; check the key and the model slug |
+| jq `-e` exits non-zero (no image in response) | Model returned no image — verify the slug is image-output (step 2); read the printed error |
+| `404 No endpoints found for <model>` | Slug is stale or not image-capable — pick one from the step-2 list |
+| decoded image empty (`test -s` fails) | Decode failed — on older BSD `base64`, use `-D`; re-check the response |
 | `command not found: pixelvault` | `npm install -g pixelvault-cli` |
-| `No API key configured` / `401` | Run `/pixelvault-setup` or set `PIXELVAULT_API_KEY` |
-| `413 Payload Too Large` | Generated image exceeds the plan limit (5 MB free) — downscale, or use a paid plan |
+| PixelVault `401` / not authenticated | Run `/pixelvault-setup` or set `PIXELVAULT_API_KEY` |
+| PixelVault `413 Payload Too Large` | Image exceeds the plan limit (5 MB free) — downscale, or use a paid plan |
+| PixelVault `415 Unsupported Media Type` | Decoded file isn't a supported image — the generation step likely failed |
 
 ## Notes
 
@@ -97,23 +125,7 @@ in a deployed site or client bundle. What ships is only the resulting CDN URL.
   the art is reproducible.
 - **Attribute correctly.** Record which model produced an image if it matters —
   `gemini-3.1-flash-image` and `gemini-3-pro-image` are different looks.
+- **`MODEL` respects the `model` arg** — set `MODEL=<slug>` before running, or it
+  falls back to the default.
 - For OpenAI's `gpt-image-1` specifically, call OpenAI's images API directly and
   host the result with `pixelvault upload` the same way.
-
-## Example
-
-```bash
-export OPENROUTER_API_KEY=sk-or-...
-PROMPT="Flat vector blog hero, a friendly robot writing a document at a laptop, \
-image flowing into a labeled vault, soft indigo gradient, no text, 16:9"
-
-curl -s https://openrouter.ai/api/v1/chat/completions \
-  -H "Authorization: Bearer $OPENROUTER_API_KEY" -H "Content-Type: application/json" \
-  -d "$(jq -n --arg m google/gemini-3.1-flash-image --arg p "$PROMPT" \
-        '{model:$m, modalities:["image","text"], messages:[{role:"user",content:$p}]}')" \
-  | jq -r '.choices[0].message.images[0].image_url.url' \
-  | sed 's/^data:image\/[^;]*;base64,//' | base64 -d > hero.png
-
-pixelvault upload hero.png
-# → https://img.pixelvault.dev/proj_abc/img_xyz.png
-```
