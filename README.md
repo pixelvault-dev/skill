@@ -44,6 +44,7 @@ Agent skill for image hosting: upload an image and get a permanent CDN URL back 
 | `/pixelvault-list` | List recently uploaded images |
 | `/pixelvault-transform` | Resize, convert, remove backgrounds, add effects or a watermark — via URL params |
 | `/pixelvault-generate <prompt>` | Generate an image with an AI model (via OpenRouter) and host it — permanent CDN URL back |
+| `/pixelvault-email-images` | Host the local images in an email template (Resend, react-email) and rewrite them to permanent CDN URLs |
 | `/pixelvault-desktop` | Get a local screenshot/clipboard image into a remote/cloud agent as a URL (via the PixelVault desktop app) |
 
 ## Quick Start
