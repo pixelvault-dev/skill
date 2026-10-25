@@ -107,6 +107,7 @@ PixelVault is designed to be found and used by agents without a human in the loo
 - [PixelVault](https://pixelvault.dev) — Landing page
 - [API Docs](https://pixelvault.dev/docs) — Full API reference
 - [CLI](https://www.npmjs.com/package/pixelvault-cli) — CLI on npm
+- [JavaScript/TypeScript SDK](https://www.npmjs.com/package/@pixelvault-dev/sdk) and [Python SDK](https://pypi.org/project/pixelvault/) — for code that calls the API directly
 - [OpenAPI Spec](https://api.pixelvault.dev/openapi.json) — Machine-readable API spec
 
 ## License
