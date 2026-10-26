@@ -40,6 +40,7 @@ Agent skill for image hosting: upload an image and get a permanent CDN URL back 
 | Skill | Description |
 |-------|-------------|
 | `/pixelvault-upload <file>` | Upload image(s) and get CDN URLs |
+| `/pixelvault-host-image` | Zero-install: host a file or URL with one `curl`, no signup (keyless, 30-day links; add a key for permanent). Published on ClawHub for OpenClaw |
 | `/pixelvault-setup` | Install CLI and configure API key |
 | `/pixelvault-list` | List recently uploaded images |
 | `/pixelvault-transform` | Resize, convert, remove backgrounds, add effects or a watermark — via URL params |
@@ -63,6 +64,7 @@ Then, inside your agent:
 
 - **skills.sh (any agent)** — `npx skills add pixelvault-dev/skill` installs the skill folders for Claude Code, Codex, Cursor, and more.
 - **Claude Code plugin** — install from the marketplace, or copy the folders in [`skills/`](./skills) into `.claude/skills/` (project) or `~/.claude/skills/` (user).
+- **OpenClaw** — `openclaw skills install pixelvault-host-image` (from [ClawHub](https://clawhub.ai)). Needs only `curl`. Guide: https://pixelvault.dev/integrations/openclaw
 - **Remote MCP server** — point any MCP-capable agent at `https://mcp.pixelvault.dev/mcp` (bearer auth with your API key). No local install required.
 - **Any other agent** — paste a `SKILL.md` from [`skills/`](./skills) into your custom instructions, or hand the agent the OpenAPI spec below.
 
