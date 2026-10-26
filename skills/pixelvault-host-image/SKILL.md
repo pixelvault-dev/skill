@@ -2,7 +2,7 @@
 name: pixelvault-host-image
 description: Turn a local image file, or an image URL, into a public https link with one curl call. Use when you need a shareable URL for a screenshot, chart, generated image, or diagram, for example to send it in chat, embed it in a post, a PR, or an email. Works with no signup or API key (temporary link, 30 days); add PIXELVAULT_API_KEY for permanent links.
 homepage: https://pixelvault.dev/integrations/openclaw
-metadata: {"openclaw": {"emoji": "🖼️", "homepage": "https://pixelvault.dev/integrations/openclaw", "requires": {"bins": ["curl"]}, "primaryEnv": "PIXELVAULT_API_KEY", "envVars": [{"name": "PIXELVAULT_API_KEY", "required": false, "description": "Optional PixelVault secret key (pv_live_...). Without it uploads are keyless and expire after 30 days."}]}}
+metadata: {"openclaw": {"emoji": "🖼️", "homepage": "https://pixelvault.dev/integrations/openclaw/", "requires": {"bins": ["curl"]}, "primaryEnv": "PIXELVAULT_API_KEY", "envVars": [{"name": "PIXELVAULT_API_KEY", "required": false, "description": "Optional PixelVault secret key (pv_live_...). Without it uploads are keyless and expire after 30 days."}]}}
 ---
 
 # Host an image, get a public URL
