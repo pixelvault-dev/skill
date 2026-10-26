@@ -59,7 +59,7 @@ pixelvault register --email <their-email> --passwordless
 
 This creates the account, saves the API key automatically, and needs no
 password. The user can set a password later to enable dashboard login via the
-web "Forgot password" flow (https://pixelvault.dev/forgot-password) — an API key
+web "Forgot password" flow (https://pixelvault.dev/forgot-password/) — an API key
 is all that's needed for uploads.
 
 Note: uploads are limited until the user verifies their email, so use a real

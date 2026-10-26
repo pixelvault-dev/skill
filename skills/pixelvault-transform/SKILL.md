@@ -76,4 +76,4 @@ pixelvault get img_xyz -o cut.png -t "segment=foreground"  # download a transpar
 - **`tile`** must reference another **raster** image (png/jpg/webp/avif) in the
   **same project** — not an external URL. Bake opacity into the source PNG.
 - SVG sources are served as-is (not transformed).
-- Full reference: <https://pixelvault.dev/docs#transforms>
+- Full reference: <https://pixelvault.dev/docs/#transforms>
