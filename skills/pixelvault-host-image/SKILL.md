@@ -57,13 +57,16 @@ Use this for short-lived URLs (generated images, expiring CDN links) before
 they disappear. https only. Without a key the API returns `missing_api_key`:
 download the file first, then upload it with the first command.
 
-## Resize or convert on the fly
+## Resize on the fly
 
-Append query parameters to the returned URL. No re-upload:
+Append `?size=<preset>` to the returned URL. No re-upload. This works on keyless
+links too:
 
-- `?w=800` width, `?h=600` height
-- `?fmt=webp` convert (`fmt=auto` negotiates the best format)
-- `?w=1200&h=630` for a social card size
+- `?size=s` (256 px wide), `?size=m` (640), `?size=l` (1280)
+- `?size=social` (1200x630 card), `?size=square` (1080x1080), `?size=portrait` (1080x1350)
+
+Free-form `?w=`, `?h=`, `?fmt=` and effects only work on links uploaded **with an
+API key**. On a keyless link they are ignored and the original is served.
 
 ## Limits and errors
 
