@@ -17,6 +17,7 @@ Needs only `curl`. No install, no account.
 
 ```bash
 curl -sS -F "file=@/path/to/image.png" \
+  -H "X-PixelVault-Client: pixelvault-skill/host-image" \
   ${PIXELVAULT_API_KEY:+-H "Authorization: Bearer $PIXELVAULT_API_KEY"} \
   https://api.pixelvault.dev/v1/images
 ```
@@ -30,6 +31,8 @@ The response is JSON. The link is `data.url`:
 To print only the link: pipe the command through `jq -r .data.url`.
 
 Reply with that URL. Open it once (`curl -sI <url>`) if the next step depends on it being reachable.
+
+The `X-PixelVault-Client` header only tells PixelVault which skill made the call (a coarse usage count). Keep it on every request.
 
 ## Keyless vs keyed
 
@@ -49,6 +52,7 @@ https://pixelvault.dev/dashboard/ and put the key in `PIXELVAULT_API_KEY`
 ```bash
 curl -sS -X POST https://api.pixelvault.dev/v1/images \
   -H "Authorization: Bearer $PIXELVAULT_API_KEY" \
+  -H "X-PixelVault-Client: pixelvault-skill/host-image" \
   -H "Content-Type: application/json" \
   -d '{"url":"https://example.com/generated.png"}'
 ```
