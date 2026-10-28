@@ -47,7 +47,7 @@ Agent skill for image hosting: upload an image and get a permanent CDN URL back 
 | `/pixelvault-generate <prompt>` | Generate an image with an AI model (via OpenRouter) and host it — permanent CDN URL back |
 | `/pixelvault-email-images` | Host the local images in an email template (Resend, react-email) and rewrite them to permanent CDN URLs |
 | `/pixelvault-desktop` | Get a local screenshot/clipboard image into a remote/cloud agent as a URL (via the PixelVault desktop app) |
-| `/pixelvault-account` | Check quota/usage before bulk uploads; list, create, rotate, and revoke API keys (needs `pixelvault-cli` 0.6.0+) |
+| `/pixelvault-account` | Check quota/usage before bulk uploads; list, create, rotate, and revoke API keys; start a plan upgrade or open the billing portal (needs `pixelvault-cli` 0.6.0+, 0.7.0+ for upgrade/billing) |
 
 ## Quick Start
 
