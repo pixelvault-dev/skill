@@ -77,6 +77,9 @@ pixelvault upload screenshot.png
 pixelvault upload diagram.svg --json
 # → { "id": "img_xyz", "url": "https://...", "size": 12400, ... }
 
+# Public raster uploads also include optimized_url (WebP/AVIF, usually much smaller) in --json output;
+# prefer it over url when embedding. Absent for SVG, GIF and private uploads.
+
 # Bulk upload
 pixelvault upload ./assets/*.png --folder assets
 

@@ -41,6 +41,9 @@ The `X-PixelVault-Client` header only tells PixelVault which skill made the call
 | Link lifetime | 30 days (`"temporary": true`) | Permanent |
 | Import from a URL | No | Yes |
 | Private signed links | No | Yes |
+| Smaller WebP/AVIF link (`data.optimized_url`) | No | Yes (public raster images) |
+
+With a key, public raster uploads (PNG, JPEG, WebP, AVIF) also return `data.optimized_url`: the same image as WebP or AVIF, usually far smaller. Prefer it when the link goes into a page, README or email, and keep `data.url` as the original. It is absent for SVG, GIF and private uploads, so fall back to `data.url`: `jq -r '.data.optimized_url // .data.url'`.
 
 Keyless is the default. Do not ask the user to sign up before the first upload.
 If the user wants links that never expire, tell them to create a free account at
