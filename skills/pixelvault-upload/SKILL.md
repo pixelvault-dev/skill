@@ -48,6 +48,12 @@ pixelvault upload photo.png --optimized
 # Private — returns a signed URL only holders of the link can open
 pixelvault upload mockup.png --private
 pixelvault upload mockup.png --private --expires 7d
+
+# Retry-safe (CLI 0.9.0+): repeating the same key + file returns the original image
+pixelvault upload shot.png --idempotency-key "$CI_RUN_ID-shot-1"
+
+# Reuse an identical image already in the project instead of storing another copy (CLI 0.9.0+)
+pixelvault upload logo.png --dedupe
 ```
 
 4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. When the link will be embedded in a page, README or email, add `--optimized` for a much smaller WebP/AVIF variant. A public URL is permanent and globally cached; a `--private` URL is a signed link that expires (default 7 days).
@@ -66,6 +72,7 @@ pixelvault upload mockup.png --private --expires 7d
 | `No API key configured` | Tell user to run `/pixelvault-setup` or set `PIXELVAULT_API_KEY` |
 | `401 Unauthorized` | API key is invalid — tell user to run `pixelvault login` |
 | `402 ... private images` | Free plan's private-image limit reached — tell user to delete some or upgrade |
+| `idempotency_key_reuse` | That `--idempotency-key` was already used for a different image (or visibility, or it expired) — use a new key |
 | `413 Payload Too Large` | File exceeds plan limit (5 MB free, 50 MB paid) |
 | `415 Unsupported Media Type` | File is not a supported image format |
 
@@ -90,6 +97,23 @@ pixelvault upload ./assets/*.png --folder assets
 pixelvault upload mockup.png --private --expires 24h
 # → https://img.pixelvault.dev/proj_abc/cp/i/img_xyz.png?token=…&expires=…
 ```
+
+## Retries and duplicates
+
+Agents retry, and re-render the same screenshot. Two flags (CLI 0.9.0+) keep that
+from piling up copies:
+
+- `--idempotency-key <key>` — use when a call might be **retried** (timeouts,
+  flaky CI). Repeating the same key with the same file returns the **original**
+  image; a note ("Replayed: …") goes to stderr and stdout is still the URL. Use
+  a stable, unique key per image, e.g. `"$CI_RUN_ID-<name>"`. Single file only.
+  Reusing a key for a *different* image fails with `idempotency_key_reuse`.
+- `--dedupe` — use when you may upload the **same bytes again** (a logo, an
+  unchanged screenshot). If an identical image already exists in the project it
+  is returned and no new upload is stored or counted. Best-effort.
+
+They can't be combined. Prefer the key when you control retries; use `--dedupe`
+when you don't.
 
 ## Private uploads
 
