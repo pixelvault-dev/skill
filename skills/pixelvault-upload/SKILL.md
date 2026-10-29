@@ -42,12 +42,15 @@ pixelvault upload <file> --folder <folder>
 # Multiple files (shell glob)
 pixelvault upload *.png --folder screenshots
 
+# Smaller WebP/AVIF link for embedding in a page, README or email (CLI 0.8.0+)
+pixelvault upload photo.png --optimized
+
 # Private — returns a signed URL only holders of the link can open
 pixelvault upload mockup.png --private
 pixelvault upload mockup.png --private --expires 7d
 ```
 
-4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. A public URL is permanent and globally cached; a `--private` URL is a signed link that expires (default 7 days).
+4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. When the link will be embedded in a page, README or email, add `--optimized` for a much smaller WebP/AVIF variant. A public URL is permanent and globally cached; a `--private` URL is a signed link that expires (default 7 days).
 
 ## Output Contract
 
@@ -77,8 +80,8 @@ pixelvault upload screenshot.png
 pixelvault upload diagram.svg --json
 # → { "id": "img_xyz", "url": "https://...", "size": 12400, ... }
 
-# Public raster uploads also include optimized_url (WebP/AVIF, usually much smaller) in --json output;
-# prefer it over url when embedding. Absent for SVG, GIF and private uploads.
+# Public raster uploads also include optimized_url (WebP/AVIF, usually much smaller) in --json output.
+# `--optimized` prints it instead of url, and falls back to url when there is none (SVG, GIF, private).
 
 # Bulk upload
 pixelvault upload ./assets/*.png --folder assets
