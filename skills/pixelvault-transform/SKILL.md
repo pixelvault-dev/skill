@@ -52,7 +52,7 @@ pixelvault get img_xyz -o cut.png -t "segment=foreground"  # download a transpar
 | `flip` | `h` \| `v` \| `hv` | Mirror. |
 | `brightness`, `contrast` | multiplier (`1` = no change) | Tone. |
 | `saturation` | multiplier (`0` = grayscale, `1` = no change) | Saturation. |
-| `tile` | a same-project image filename (e.g. `img_logo.png`) | Watermark — tiles one of your own images over the base. |
+| `tile` | `image_id.ext` of a same-project image (e.g. `img_logo.png`; prefix its folder if it has one) | Watermark — tiles one of your own images over the base. The original upload filename does not work. |
 
 ## Common recipes
 
@@ -74,6 +74,9 @@ pixelvault get img_xyz -o cut.png -t "segment=foreground"  # download a transpar
 - **`tile`/`segment`/effects apply to your project images**, not the anonymous
   playground.
 - **`tile`** must reference another **raster** image (png/jpg/webp/avif) in the
-  **same project** — not an external URL. Bake opacity into the source PNG.
+  **same project** by its `image_id.ext` — not the upload filename, not an external URL.
+  Bake opacity into the source PNG. An unknown path is silently ignored.
+- **A cut-out (`segment`) is PNG, WebP or AVIF — never JPEG.** `fmt=jpg` returns a PNG.
+  Width/height snap to a fixed set of steps (e.g. 1500 → 1600).
 - SVG sources are served as-is (not transformed).
 - Full reference: <https://pixelvault.dev/docs/#transforms>
