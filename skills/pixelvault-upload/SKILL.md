@@ -54,6 +54,9 @@ pixelvault upload shot.png --idempotency-key "$CI_RUN_ID-shot-1"
 
 # Reuse an identical image already in the project instead of storing another copy (CLI 0.9.0+)
 pixelvault upload logo.png --dedupe
+
+# Tag with custom metadata so you can find it again (CLI 0.11.0+)
+pixelvault upload shot.png --meta env=staging --meta run="$CI_RUN_ID"
 ```
 
 4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. When the link will be embedded in a page, README or email, add `--optimized` for a much smaller WebP/AVIF variant. A public URL is permanent and globally cached; a `--private` URL is a signed link that expires (default 7 days).
@@ -114,6 +117,19 @@ from piling up copies:
 
 They can't be combined. Prefer the key when you control retries; use `--dedupe`
 when you don't.
+
+## Custom metadata
+
+Tag images with your own key/values (CLI 0.11.0+) and find them again later with
+`/pixelvault-list`:
+
+- `--meta key=value` — repeatable, string values: `--meta env=prod --meta run=42`.
+- `--metadata '<json>'` — a JSON object, for typed values: `--metadata '{"n":3}'`.
+- Up to 50 top-level keys and 4 KB; no NUL characters. Don't put secrets in it.
+- It is **ignored** when `--dedupe` or `--idempotency-key` returns an existing
+  image. Change an image's metadata afterwards with
+  `pixelvault meta <id> --meta k=v` — that **replaces** the whole object
+  (include every key to keep); `pixelvault meta <id> --clear` removes it.
 
 ## Private uploads
 
