@@ -28,6 +28,10 @@ pixelvault list --json
 
 # Pagination
 pixelvault list --page 2 --per-page 50
+
+# Only images tagged at upload with custom metadata (CLI 0.11.0+; all pairs must match)
+pixelvault list --meta env=prod --meta run=42      # string values
+pixelvault list --metadata '{"n":3}'               # typed values
 ```
 
 2. **Report** — Show the URLs (or metadata if `--json` was used) to the user.
@@ -35,4 +39,4 @@ pixelvault list --page 2 --per-page 50
 ## Output
 
 - Default: one CDN URL per line to stdout
-- `--json`: full response with id, url, mime_type, size, filename, folder, created_at, and pagination metadata
+- `--json`: full response with id, url, mime_type, size, filename, folder, created_at, custom `metadata`, and pagination metadata
