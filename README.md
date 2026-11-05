@@ -42,7 +42,7 @@ Agent skill for image hosting: upload an image and get a permanent CDN URL back 
 | `/pixelvault-upload <file>` | Upload image(s) and get CDN URLs |
 | `/pixelvault-host-image` | Zero-install: host a file or URL with one `curl`, no signup (keyless, 30-day links; add a key for permanent). Published on ClawHub for OpenClaw |
 | `/pixelvault-setup` | Install CLI and configure API key |
-| `/pixelvault-list` | List recently uploaded images |
+| `/pixelvault-list` | List recently uploaded images, search them by AI description or tag, and describe an already-uploaded image (alt text, OCR, tags; needs `pixelvault-cli` 0.13.0+ for tags/describe) |
 | `/pixelvault-transform` | Resize, convert, remove backgrounds, add effects or a watermark — via URL params |
 | `/pixelvault-ecommerce-catalog <folder or URLs>` | Turn product photos into catalog variants (marketplace white squares, listing/PDP sizes, thumbnails, cut-outs, watermarks) and verify each one before reporting URLs |
 | `/pixelvault-generate <prompt>` | Generate an image from a prompt and host it. Built-in by default (`pixelvault generate`, only your PixelVault key, monthly credits); OpenRouter for other models |

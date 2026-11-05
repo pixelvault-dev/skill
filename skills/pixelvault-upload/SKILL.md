@@ -136,16 +136,20 @@ Tag images with your own key/values (CLI 0.11.0+) and find them again later with
 
 ## AI descriptions (alt text, caption, OCR)
 
-`--describe` (CLI 0.12.0+) has PixelVault write alt text, a short caption and the
-text found in the image (OCR). It runs in the background (about 10 s):
+`--describe` (CLI 0.12.0+) has PixelVault write alt text, a short caption, the
+text found in the image (OCR) and up to 6 short lowercase **tags** (e.g. `boat`,
+`receipt`). It runs in the background (about 10 s):
 
 - Without `--wait` the upload prints the URL as usual and stderr says where to read
-  the result: `pixelvault get <id> --json` → `description.alt`, `.caption`, `.ocr_text`
-  (`description.status` is `pending`, then `done` or `failed`).
+  the result: `pixelvault get <id> --json` → `description.alt`, `.caption`, `.ocr_text`,
+  `.tags` (`description.status` is `pending`, then `done` or `failed`).
 - With `--wait` the CLI waits up to ~40 s; add `--json` to get the finished
   `description` in the output (otherwise the alt text goes to stderr).
 - Use it when you need **alt text for an `<img>`** or README, or want screenshots to be
-  **searchable later** (`/pixelvault-list` → `pixelvault list --search "invoice"`).
+  **searchable later** (`/pixelvault-list` → `pixelvault list --search "invoice"`, or
+  by tag: `pixelvault list --tag boat`, with `pixelvault tags` listing them).
+- Forgot `--describe`? Describe the image afterwards with `pixelvault describe <id>`
+  (CLI 0.13.0+, see `/pixelvault-list`).
 - Plan quota: Free 20 in total, Starter 1,000/mo, Pro 10,000/mo. Needs a **secret**
   key and a verified email. If it can't start (quota, unsupported type — only
   JPEG/PNG/WebP/GIF up to 4 MB — or busy), the upload still succeeds and stderr says
