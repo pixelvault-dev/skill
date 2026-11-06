@@ -16,6 +16,8 @@ Transform any image already hosted on PixelVault by adding query params to its C
 URL — no re-upload, no build pipeline. Every param works on any
 `https://img.pixelvault.dev/...` URL.
 
+> Working with a **local file** that isn't hosted yet (compress, resize, convert before committing)? Use `/pixelvault-optimize` instead — it runs on the user's machine with no account.
+
 ## Two ways to do it
 
 **1. Append params to the URL directly** (works everywhere, no CLI needed):
