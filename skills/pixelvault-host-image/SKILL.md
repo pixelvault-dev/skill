@@ -77,8 +77,8 @@ API key**. On a keyless link they are ignored and the original is served.
 
 ## Limits and errors
 
-- Formats: JPEG, PNG, GIF, WebP, AVIF, SVG. Max 5 MB per image on every plan.
-- `413` file over 5 MB, `400` with `invalid_file` not a supported image, `429` slow down and retry later.
+- Formats: JPEG, PNG, GIF, WebP, AVIF, SVG. Max 5 MB per image on the free plan and for keyless uploads, 10 MB on Starter, 15 MB on Pro.
+- `413` file over your plan's cap, `400` with `invalid_file` not a supported image, `429` slow down and retry later.
 - `401` the key is wrong. Unset it to fall back to a keyless upload.
 
 ## Rules
