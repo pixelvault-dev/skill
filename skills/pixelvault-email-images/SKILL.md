@@ -108,8 +108,8 @@ If no API key is configured, tell the user to run `/pixelvault-setup` first or s
 | `command not found: pixelvault` | Tell user to `npm install -g pixelvault-cli` |
 | `No API key configured` | Tell user to run `/pixelvault-setup` or set `PIXELVAULT_API_KEY` |
 | `401 Unauthorized` | API key invalid — tell user to run `pixelvault login` |
-| `413 Payload Too Large` | Image exceeds plan limit (5 MB free, 50 MB paid) |
-| `415 Unsupported Media Type` | File is not a supported image format |
+| `413 Payload Too Large` | Image is over 5 MB (same cap on every plan) — resize or recompress it |
+| `400 invalid_file` | File is not a supported image format |
 | Local path not found | Report which reference couldn't be resolved; don't rewrite it |
 
 ## Example

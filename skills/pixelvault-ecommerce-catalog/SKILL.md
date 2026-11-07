@@ -103,7 +103,7 @@ parameters it doesn't support and serves the original instead of an error.
 - **URL import needs a direct URL.** Redirects are refused (`ssrf_blocked`: "provide a direct
   download URL"), and some hosts block server-side fetchers with a `403`. For those, download
   the file and upload it with the CLI instead.
-- **Per-file size limit:** 5 MB on free, 50 MB on paid. Downscale larger masters first.
+- **Per-file size limit:** 5 MB per image on every plan. Downscale larger masters first.
 
 ## Error handling
 
@@ -112,7 +112,7 @@ parameters it doesn't support and serves the original instead of an error.
 | `ssrf_blocked` / "redirected" | The URL redirects. Resolve it to the final direct URL, or download and upload the file. |
 | `fetch_failed` (status 403/404) | The host blocks fetchers or the link is dead. Download it yourself and upload the file. |
 | `invalid_folder` | Remove `/` and other symbols from the folder name. |
-| `413 Payload Too Large` | File exceeds the plan limit. Downscale it. |
+| `413 Payload Too Large` | File is over the 5 MB cap. Downscale it. |
 | `402` / quota messages | Plan limit reached. Run `/pixelvault-account` and tell the user. |
 | Variant equals the original | A param was ignored. Recheck names and values against `/pixelvault-transform`. |
 

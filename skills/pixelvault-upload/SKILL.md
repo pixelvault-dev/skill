@@ -79,8 +79,8 @@ pixelvault upload shot.png --describe --wait --json
 | `401 Unauthorized` | API key is invalid — tell user to run `pixelvault login` |
 | `402 ... private images` | Free plan's private-image limit reached — tell user to delete some or upgrade |
 | `idempotency_key_reuse` | That `--idempotency-key` was already used for a different image (or visibility, or it expired) — use a new key |
-| `413 Payload Too Large` | File exceeds plan limit (5 MB free, 50 MB paid) |
-| `415 Unsupported Media Type` | File is not a supported image format |
+| `413 Payload Too Large` | File is over 5 MB (same cap on every plan) — resize or recompress it |
+| `400 invalid_file` | File is not a supported image format |
 
 ## Examples
 
