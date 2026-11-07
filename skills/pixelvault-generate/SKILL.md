@@ -200,7 +200,7 @@ missing key or a broken file.
 | decoded image empty (`test -s` fails) | Decode failed — on older BSD `base64`, use `-D`; re-check the response |
 | `command not found: pixelvault` | `npm install -g pixelvault-cli` |
 | PixelVault `401` / not authenticated | Run `/pixelvault-setup` or set `PIXELVAULT_API_KEY` |
-| PixelVault `413 Payload Too Large` | Image is over 5 MB (same cap on every plan) — downscale it |
+| PixelVault `413 Payload Too Large` | Image is over your plan's cap (5 MB on the free plan) — downscale it |
 | PixelVault `400 invalid_file` | Decoded file isn't a supported image — the generation step likely failed |
 
 ### Notes
