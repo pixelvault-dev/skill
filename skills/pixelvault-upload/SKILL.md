@@ -1,9 +1,9 @@
 ---
 name: pixelvault-upload
-description: Upload image files to PixelVault and get a public CDN URL back. Use when the user says "screenshot this and host it", "upload this image", "host this mockup", "give me a URL for this diagram", "attach this screenshot to the PR/issue", or when you generate, render, or save an image (screenshot, diagram, chart, build artifact) that needs a shareable link. Ideal for embedding images in GitHub PRs, issues, and comments.
+description: Upload image files or MP4 videos to PixelVault and get public CDN URLs back. Use when the user says "upload this image", "host this video", "give me a URL for this MP4", "screenshot this and host it", "attach this screenshot to the PR/issue", or when an image or video artifact needs a shareable link. Ideal for social publishing workflows and embedding media in GitHub PRs, issues, and comments.
 args:
   - name: files
-    description: File path(s) or glob pattern to upload (e.g. screenshot.png, ./images/*.jpg)
+    description: Image or MP4 file path(s), or a glob pattern (e.g. screenshot.png, demo.mp4, ./images/*.jpg)
     required: true
   - name: folder
     description: Optional folder to organize images in
@@ -12,7 +12,7 @@ args:
 
 # PixelVault Upload
 
-Upload image files to PixelVault and return CDN URLs.
+Upload image files or MP4 videos to PixelVault and return CDN URLs.
 
 ## Prerequisites
 
@@ -21,6 +21,9 @@ The `pixelvault` CLI must be installed and configured. If the command is not fou
 ```bash
 npm install -g pixelvault-cli
 ```
+
+MP4 uploads require `pixelvault-cli` 0.15.0 or newer. Upgrade with
+`npm install -g pixelvault-cli@latest` if `pixelvault --version` is older.
 
 If no API key is configured, tell the user to run `/pixelvault-setup` first or set `PIXELVAULT_API_KEY` in their environment.
 
@@ -45,6 +48,10 @@ pixelvault upload *.png --folder screenshots
 # Smaller WebP/AVIF link for embedding in a page, README or email (CLI 0.8.0+)
 pixelvault upload photo.png --optimized
 
+# MP4 video (CLI 0.15.0+; streams the file, multipart above 100 MB)
+pixelvault upload demo.mp4
+pixelvault upload demo.mp4 --json
+
 # Private — returns a signed URL only holders of the link can open
 pixelvault upload mockup.png --private
 pixelvault upload mockup.png --private --expires 7d
@@ -62,13 +69,13 @@ pixelvault upload shot.png --meta env=staging --meta run="$CI_RUN_ID"
 pixelvault upload shot.png --describe --wait --json
 ```
 
-4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. When the link will be embedded in a page, README or email, add `--optimized` for a much smaller WebP/AVIF variant. A public URL is permanent and globally cached; a `--private` URL is a signed link that expires (default 7 days).
+4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. For images embedded in a page, README, or email, add `--optimized` for a smaller WebP/AVIF variant. MP4 videos are returned unchanged and support HTTP range requests. Public links are permanent and globally cached; image uploads can also use `--private` for an expiring signed link.
 
 ## Output Contract
 
 - The CLI prints **only URLs** to stdout (one per line)
 - Human-readable messages go to stderr
-- Use `--json` if you need metadata (id, mime_type, size, filename)
+- Use `--json` if you need metadata (`id`, `kind`, `mime_type`, `size`, `filename`)
 
 ## Error Handling
 
@@ -79,8 +86,9 @@ pixelvault upload shot.png --describe --wait --json
 | `401 Unauthorized` | API key is invalid — tell user to run `pixelvault login` |
 | `402 ... private images` | Free plan's private-image limit reached — tell user to delete some or upgrade |
 | `idempotency_key_reuse` | That `--idempotency-key` was already used for a different image (or visibility, or it expired) — use a new key |
-| `413 Payload Too Large` | File is over your plan's cap (5 MB free, 10 MB Starter, 15 MB Pro) — resize or recompress it |
-| `400 invalid_file` | File is not a supported image format |
+| `413 Payload Too Large` | Images: 5 MB Free, 10 MB Starter, 15 MB Pro. Videos: 25 MB Free, 100 MB Starter, 250 MB Pro |
+| `400 invalid_file` | File bytes are not a supported image or valid MP4 |
+| `415 unsupported_media_type` | Video uploads accept MP4 only |
 
 ## Examples
 
@@ -102,9 +110,26 @@ pixelvault upload ./assets/*.png --folder assets
 # Private mockup, link valid for 24 hours
 pixelvault upload mockup.png --private --expires 24h
 # → https://img.pixelvault.dev/proj_abc/cp/i/img_xyz.png?token=…&expires=…
+
+# MP4 video, streamed without loading the whole file into memory
+pixelvault upload product-demo.mp4
+# → https://img.pixelvault.dev/proj_abc/vid_xyz.mp4
+
 ```
 
-## Retries and duplicates
+## MP4 videos
+
+Video upload support requires CLI 0.15.0+:
+
+- MP4 only; PixelVault stores the original bytes without transcoding.
+- Limits: Free 25 MB, Starter 100 MB, Pro 250 MB.
+- The CLI streams every video and automatically uses multipart upload above
+  100 MB.
+- `--json` is supported. Image-only options (`--folder`, `--private`,
+  `--optimized`, reuse, metadata, and AI descriptions) are rejected.
+- Returned URLs are public, permanent CDN links with HTTP range support.
+
+## Image retries and duplicates
 
 Agents retry, and re-render the same screenshot. Two flags (CLI 0.9.0+) keep that
 from piling up copies:
@@ -174,7 +199,7 @@ and stops working when it expires.
   publishable keys can't create private uploads.
 - `--expires` only applies together with `--private`.
 
-## Transform the result
+## Transform an image result
 
 Every returned URL supports on-the-fly transforms — just append query params (no
 re-upload): `?w=400` (thumbnail), `?fmt=webp`, `?segment=foreground` (transparent
