@@ -23,8 +23,9 @@ npm install -g pixelvault-cli
 ```
 
 Local MP4 uploads require `pixelvault-cli` 0.15.0 or newer; public MP4 URL
-imports require 0.16.0 or newer; private MP4 delivery requires 0.17.0 or newer.
-Upgrade with `npm install -g pixelvault-cli@latest` if `pixelvault --version` is older.
+imports require 0.16.0 or newer; private MP4 delivery requires 0.17.0 or newer;
+social-compatibility metadata and warnings require 0.18.0 or newer. Upgrade with
+`npm install -g pixelvault-cli@latest` if `pixelvault --version` is older.
 
 If no API key is configured, tell the user to run `/pixelvault-setup` first or set `PIXELVAULT_API_KEY` in their environment.
 
@@ -76,13 +77,13 @@ pixelvault upload shot.png --meta env=staging --meta run="$CI_RUN_ID"
 pixelvault upload shot.png --describe --wait --json
 ```
 
-4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. For images embedded in a page, README, or email, add `--optimized` for a smaller WebP/AVIF variant. MP4 videos are returned unchanged, support HTTP range requests, and include a generated JPEG `poster_url` in `--json` output when frame extraction succeeds. Public links are permanent and globally cached; images and videos can use `--private` for expiring signed delivery.
+4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. For images embedded in a page, README, or email, add `--optimized` for a smaller WebP/AVIF variant. MP4 videos are returned unchanged, support HTTP range requests, and include a generated JPEG `poster_url` in `--json` output when frame extraction succeeds. If stderr prints `Video compatibility warning`, report the exact warning: the upload succeeded and its URL works, but do not describe it as social-ready. Public links are permanent and globally cached; images and videos can use `--private` for expiring signed delivery.
 
 ## Output Contract
 
 - The CLI prints **only URLs** to stdout (one per line)
 - Human-readable messages go to stderr
-- Use `--json` if you need metadata (`id`, `kind`, `mime_type`, `size`, `filename`, and video `poster_url`)
+- Use `--json` if you need metadata (`id`, `kind`, `mime_type`, `size`, `filename`, and video `poster_url`, dimensions, duration, codecs, `fast_start`, `social_compatible`, and `compatibility_warnings`)
 
 ## Error Handling
 
