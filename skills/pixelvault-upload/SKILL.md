@@ -1,6 +1,6 @@
 ---
 name: pixelvault-upload
-description: Upload image files, MP4 files, or public MP4 URLs to PixelVault and get public or signed CDN URLs back. Use when the user says "upload this image", "host this video", "import this video URL", "give me a URL for this MP4", "host this privately", "screenshot this and host it", "attach this screenshot to the PR/issue", or when an image or video artifact needs a shareable link. Ideal for social publishing workflows and embedding media in GitHub PRs, issues, and comments.
+description: Upload image files, MP4 files, or public MP4 URLs to PixelVault and get public or signed CDN URLs back; optionally create a social-ready H.264/AAC fast-start video copy. Use when the user says "upload this image", "host this video", "import this video URL", "give me a URL for this MP4", "make this video social-ready", "prepare this MP4 for social posting", "host this privately", "screenshot this and host it", "attach this screenshot to the PR/issue", or when an image or video artifact needs a shareable link. Ideal for social publishing workflows and embedding media in GitHub PRs, issues, and comments.
 args:
   - name: files
     description: Image or MP4 file path(s), public MP4 URL(s), or a glob pattern (e.g. screenshot.png, demo.mp4, ./images/*.jpg)
@@ -24,7 +24,8 @@ npm install -g pixelvault-cli
 
 Local MP4 uploads require `pixelvault-cli` 0.15.0 or newer; public MP4 URL
 imports require 0.16.0 or newer; private MP4 delivery requires 0.17.0 or newer;
-social-compatibility metadata and warnings require 0.18.0 or newer. Upgrade with
+social-compatibility metadata and warnings require 0.18.0 or newer; social-ready
+video optimization requires 0.19.0 or newer. Upgrade with
 `npm install -g pixelvault-cli@latest` if `pixelvault --version` is older.
 
 If no API key is configured, tell the user to run `/pixelvault-setup` first or set `PIXELVAULT_API_KEY` in their environment.
@@ -60,6 +61,10 @@ pixelvault upload "https://media.example.com/demo.mp4"
 # Private MP4 + expiry-matched signed poster (CLI 0.17.0+)
 pixelvault upload demo.mp4 --private --expires 12h --json
 
+# Create a separate H.264/AAC fast-start copy; original remains unchanged (CLI 0.19.0+)
+pixelvault optimize-video vid_abc123
+pixelvault optimize-video vid_abc123 --json
+
 # Private image or video — returns a signed URL only holders of the link can open
 pixelvault upload mockup.png --private
 pixelvault upload mockup.png --private --expires 7d
@@ -77,13 +82,13 @@ pixelvault upload shot.png --meta env=staging --meta run="$CI_RUN_ID"
 pixelvault upload shot.png --describe --wait --json
 ```
 
-4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. For images embedded in a page, README, or email, add `--optimized` for a smaller WebP/AVIF variant. MP4 videos are returned unchanged, support HTTP range requests, and include a generated JPEG `poster_url` in `--json` output when frame extraction succeeds. If stderr prints `Video compatibility warning`, report the exact warning: the upload succeeded and its URL works, but do not describe it as social-ready. Public links are permanent and globally cached; images and videos can use `--private` for expiring signed delivery.
+4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. For images embedded in a page, README, or email, add `--optimized` for a smaller WebP/AVIF variant. MP4 videos are returned unchanged, support HTTP range requests, and include a generated JPEG `poster_url` in `--json` output when frame extraction succeeds. If stderr prints `Video compatibility warning`, report the exact warning: the upload succeeded and its URL works, but do not describe the original as social-ready. When the user asked for social publishing, run `pixelvault optimize-video <id>` and report the derived URL; it preserves the original. Public links are permanent and globally cached; images, videos, and their completed social-ready copies can use `--private` for expiring signed delivery.
 
 ## Output Contract
 
 - The CLI prints **only URLs** to stdout (one per line)
 - Human-readable messages go to stderr
-- Use `--json` if you need metadata (`id`, `kind`, `mime_type`, `size`, `filename`, and video `poster_url`, dimensions, duration, codecs, `fast_start`, `social_compatible`, and `compatibility_warnings`)
+- Use `--json` if you need metadata (`id`, `kind`, `mime_type`, `size`, `filename`, and video `poster_url`, dimensions, duration, codecs, `fast_start`, `social_compatible`, `compatibility_warnings`, and `social_optimization`)
 
 ## Error Handling
 
@@ -97,6 +102,9 @@ pixelvault upload shot.png --describe --wait --json
 | `413 Payload Too Large` | Images: 5 MB Free, 10 MB Starter, 15 MB Pro. Videos: 25 MB Free, 100 MB Starter, 250 MB Pro |
 | `400 invalid_file` | File bytes are not a supported image or valid MP4 |
 | `415 unsupported_media_type` | Video uploads accept MP4 only |
+| `optimization_duration_too_long` | Social-ready optimization supports clips up to 60 seconds; report the limit and keep the original URL |
+| `optimization_source_too_large` | Social-ready optimization supports source MP4s up to 100 MB; keep the original URL |
+| `optimization_limit_reached` | Monthly output used: Free 2 min, Starter 30 min, Pro 120 min; report the reset/upgrade choice |
 
 ## Examples
 
@@ -130,24 +138,33 @@ pixelvault upload "https://media.example.com/product-demo.mp4"
 # Private MP4, signed video and poster links valid for 24 hours
 pixelvault upload product-demo.mp4 --private --expires 24h --json
 
+
+# Convert an incompatible hosted MP4 for social publishing
+pixelvault optimize-video vid_xyz
+# → https://img.pixelvault.dev/proj_abc/vid_xyz.social.mp4
 ```
 
 ## MP4 videos
 
 Local video uploads require CLI 0.15.0+; public URL imports require 0.16.0+;
-private video uploads require 0.17.0+:
+private video uploads require 0.17.0+; social-ready optimization requires 0.19.0+:
 
-- MP4 only; PixelVault stores the original bytes without transcoding.
+- MP4 only. Upload stores the original bytes unchanged.
 - A stored 640×360 JPEG poster frame is returned as `poster_url` when generation succeeds.
-- Limits: Free 25 MB, Starter 100 MB, Pro 250 MB.
+- Upload limits: Free 25 MB, Starter 100 MB, Pro 250 MB.
 - The CLI streams local videos and automatically uses multipart upload above
   100 MB.
 - For a public HTTP(S) URL, PixelVault fetches the video directly. The source
   must return a valid `Content-Length`.
-- `--private`, `--expires`, and `--json` are supported. Folder, optimization,
-  reuse, metadata, and AI descriptions remain image-only.
-- Public URLs are permanent CDN links with HTTP range support. Private video and
-  poster URLs share the requested expiry.
+- `--private`, `--expires`, and `--json` are supported. Folder, image
+  optimization, reuse, metadata, and AI descriptions remain image-only.
+- Public URLs are permanent CDN links with HTTP range support. Private original,
+  poster, and completed social-ready URLs share the requested expiry.
+- `pixelvault optimize-video <id>` creates a **separate** H.264/AAC fast-start
+  MP4 for social posting and prints its URL. The source must be at most 100 MB
+  and 60 seconds. The original remains unchanged.
+- Monthly social-ready output: Free 2 minutes, Starter 30, Pro 120. Failed jobs
+  refund reserved seconds. Repeating the command reuses a running/completed job.
 
 ## Image retries and duplicates
 
