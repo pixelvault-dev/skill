@@ -1,9 +1,9 @@
 ---
 name: pixelvault-upload
-description: Upload image files or MP4 videos to PixelVault and get public CDN URLs back. Use when the user says "upload this image", "host this video", "give me a URL for this MP4", "screenshot this and host it", "attach this screenshot to the PR/issue", or when an image or video artifact needs a shareable link. Ideal for social publishing workflows and embedding media in GitHub PRs, issues, and comments.
+description: Upload image files, MP4 files, or public MP4 URLs to PixelVault and get public CDN URLs back. Use when the user says "upload this image", "host this video", "import this video URL", "give me a URL for this MP4", "screenshot this and host it", "attach this screenshot to the PR/issue", or when an image or video artifact needs a shareable link. Ideal for social publishing workflows and embedding media in GitHub PRs, issues, and comments.
 args:
   - name: files
-    description: Image or MP4 file path(s), or a glob pattern (e.g. screenshot.png, demo.mp4, ./images/*.jpg)
+    description: Image or MP4 file path(s), public MP4 URL(s), or a glob pattern (e.g. screenshot.png, demo.mp4, ./images/*.jpg)
     required: true
   - name: folder
     description: Optional folder to organize images in
@@ -12,7 +12,7 @@ args:
 
 # PixelVault Upload
 
-Upload image files or MP4 videos to PixelVault and return CDN URLs.
+Upload image files, MP4 files, or public MP4 URLs to PixelVault and return CDN URLs.
 
 ## Prerequisites
 
@@ -22,8 +22,9 @@ The `pixelvault` CLI must be installed and configured. If the command is not fou
 npm install -g pixelvault-cli
 ```
 
-MP4 uploads require `pixelvault-cli` 0.15.0 or newer. Upgrade with
-`npm install -g pixelvault-cli@latest` if `pixelvault --version` is older.
+Local MP4 uploads require `pixelvault-cli` 0.15.0 or newer; public MP4 URL
+imports require 0.16.0 or newer. Upgrade with `npm install -g pixelvault-cli@latest`
+if `pixelvault --version` is older.
 
 If no API key is configured, tell the user to run `/pixelvault-setup` first or set `PIXELVAULT_API_KEY` in their environment.
 
@@ -48,9 +49,12 @@ pixelvault upload *.png --folder screenshots
 # Smaller WebP/AVIF link for embedding in a page, README or email (CLI 0.8.0+)
 pixelvault upload photo.png --optimized
 
-# MP4 video (CLI 0.15.0+; streams the file, multipart above 100 MB)
+# Local MP4 video (CLI 0.15.0+; streams the file, multipart above 100 MB)
 pixelvault upload demo.mp4
 pixelvault upload demo.mp4 --json
+
+# Public MP4 URL (CLI 0.16.0+; PixelVault imports it directly)
+pixelvault upload "https://media.example.com/demo.mp4"
 
 # Private — returns a signed URL only holders of the link can open
 pixelvault upload mockup.png --private
@@ -111,20 +115,26 @@ pixelvault upload ./assets/*.png --folder assets
 pixelvault upload mockup.png --private --expires 24h
 # → https://img.pixelvault.dev/proj_abc/cp/i/img_xyz.png?token=…&expires=…
 
-# MP4 video, streamed without loading the whole file into memory
+# Local MP4 video, streamed without loading the whole file into memory
 pixelvault upload product-demo.mp4
+# → https://img.pixelvault.dev/proj_abc/vid_xyz.mp4
+
+# Public MP4 URL, imported without downloading it to the agent first
+pixelvault upload "https://media.example.com/product-demo.mp4"
 # → https://img.pixelvault.dev/proj_abc/vid_xyz.mp4
 
 ```
 
 ## MP4 videos
 
-Video upload support requires CLI 0.15.0+:
+Local video uploads require CLI 0.15.0+; public URL imports require CLI 0.16.0+:
 
 - MP4 only; PixelVault stores the original bytes without transcoding.
 - Limits: Free 25 MB, Starter 100 MB, Pro 250 MB.
-- The CLI streams every video and automatically uses multipart upload above
+- The CLI streams local videos and automatically uses multipart upload above
   100 MB.
+- For a public HTTP(S) URL, PixelVault fetches the video directly. The source
+  must return a valid `Content-Length`.
 - `--json` is supported. Image-only options (`--folder`, `--private`,
   `--optimized`, reuse, metadata, and AI descriptions) are rejected.
 - Returned URLs are public, permanent CDN links with HTTP range support.
