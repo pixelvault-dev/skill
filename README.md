@@ -47,7 +47,7 @@ produces media needing a shareable link.
 
 | Skill | Description |
 |-------|-------------|
-| `/pixelvault-upload <file-or-url>` | Upload images, MP4 files, or public MP4 URLs and get CDN URLs |
+| `/pixelvault-upload <file-or-url>` | Upload images or MP4s, get CDN URLs, and make short videos social-ready |
 | `/pixelvault-host-image` | Zero-install: host a file or URL with one `curl`, no signup (keyless, 30-day links; add a key for permanent). Published on ClawHub for OpenClaw |
 | `/pixelvault-setup` | Install CLI and configure API key |
 | `/pixelvault-list` | List recently uploaded images, search them by AI description or tag, and describe an already-uploaded image (alt text, OCR, tags; needs `pixelvault-cli` 0.13.0+ for tags/describe) |
@@ -68,7 +68,7 @@ npx skills add pixelvault-dev/skill
 Then, inside your agent:
 
 1. Run `/pixelvault-setup` to configure your API key
-2. Upload media with `/pixelvault-upload screenshot.png`, `/pixelvault-upload demo.mp4`, or `/pixelvault-upload https://media.example.com/demo.mp4`
+2. Upload media with `/pixelvault-upload screenshot.png`, `/pixelvault-upload demo.mp4`, or `/pixelvault-upload https://media.example.com/demo.mp4`. Ask it to make an MP4 social-ready to get a separate H.264/AAC fast-start URL.
 
 ## Use it from any agent
 
@@ -83,11 +83,12 @@ Then, inside your agent:
 The skill wraps the [PixelVault CLI](https://www.npmjs.com/package/pixelvault-cli).
 When you or an agent uploads media:
 
-1. A local file is streamed, or PixelVault imports a public MP4 URL directly
-2. It is stored on Cloudflare R2
-3. It is served globally through Cloudflare CDN
-4. You get a permanent URL such as `https://img.pixelvault.dev/proj_abc/img_xyz.png`
-   or `https://img.pixelvault.dev/proj_abc/vid_xyz.mp4`
+1. A local file is streamed, or PixelVault imports a public MP4 URL directly.
+2. It is stored on Cloudflare R2 and served globally through Cloudflare CDN.
+3. You get a permanent URL such as `https://img.pixelvault.dev/proj_abc/img_xyz.png`
+   or `https://img.pixelvault.dev/proj_abc/vid_xyz.mp4`.
+4. For social publishing, the agent can create a separate H.264/AAC fast-start
+   copy without changing the original (up to 100 MB and 60 seconds).
 
 ## Requirements
 
@@ -109,6 +110,9 @@ Uploaded: https://img.pixelvault.dev/proj_abc/vid_xyz.mp4
 
 > /pixelvault-upload https://media.example.com/demo.mp4
 Uploaded: https://img.pixelvault.dev/proj_abc/vid_xyz.mp4
+
+> Make that uploaded video social-ready
+Optimized: https://img.pixelvault.dev/proj_abc/vid_xyz.social.mp4
 
 > /pixelvault-list --json
 [{ "id": "img_xyz", "url": "https://...", "size": 45200, ... }]
