@@ -2,6 +2,7 @@
 tags:
   - image hosting
   - image hosting for agents
+  - video hosting
   - CDN
   - screenshots
   - image management
@@ -20,13 +21,20 @@ companies:
 dependencies:
   - Node.js
 ---
-# PixelVault — Image Hosting for AI Agents
+# PixelVault — Media Hosting for AI Agents
 
-Agent skill for image hosting: upload an image and get a permanent CDN URL back — from Claude Code, Codex, Cursor, or **any agent that reads `SKILL.md`**.
+Agent skills for hosting images and MP4 videos: upload a file and get a permanent
+CDN URL back from Claude Code, Codex, Cursor, or **any agent that reads
+`SKILL.md`**.
 
-[PixelVault](https://pixelvault.dev) is agent-first image hosting for developers and AI coding agents. This skill lets an agent upload screenshots, diagrams, mockups, and generated images and get an instant, globally-cached CDN URL — no manual dashboard, no drag-and-drop, no copy-paste.
+[PixelVault](https://pixelvault.dev) is agent-first media hosting for developers
+and AI coding agents. These skills let an agent upload screenshots, diagrams,
+mockups, generated images, and MP4 videos and get an instant, globally cached
+CDN URL without a manual dashboard.
 
-**When it triggers:** "screenshot this and host it", "upload this image and give me the URL", "attach this diagram to the PR", "host this mockup", or any task that produces an image needing a shareable link.
+**When it triggers:** "screenshot this and host it", "upload this image and give
+me the URL", "host this MP4", "give me a URL for this video", or any task that
+produces media needing a shareable link.
 
 ## Why PixelVault for agents
 
@@ -39,7 +47,7 @@ Agent skill for image hosting: upload an image and get a permanent CDN URL back 
 
 | Skill | Description |
 |-------|-------------|
-| `/pixelvault-upload <file>` | Upload image(s) and get CDN URLs |
+| `/pixelvault-upload <file>` | Upload images or MP4 videos and get CDN URLs |
 | `/pixelvault-host-image` | Zero-install: host a file or URL with one `curl`, no signup (keyless, 30-day links; add a key for permanent). Published on ClawHub for OpenClaw |
 | `/pixelvault-setup` | Install CLI and configure API key |
 | `/pixelvault-list` | List recently uploaded images, search them by AI description or tag, and describe an already-uploaded image (alt text, OCR, tags; needs `pixelvault-cli` 0.13.0+ for tags/describe) |
@@ -60,7 +68,7 @@ npx skills add pixelvault-dev/skill
 Then, inside your agent:
 
 1. Run `/pixelvault-setup` to configure your API key
-2. Upload images with `/pixelvault-upload screenshot.png`
+2. Upload media with `/pixelvault-upload screenshot.png` or `/pixelvault-upload demo.mp4`
 
 ## Use it from any agent
 
@@ -72,17 +80,19 @@ Then, inside your agent:
 
 ## How It Works
 
-The skill wraps the [PixelVault CLI](https://www.npmjs.com/package/pixelvault-cli). When you (or an agent) upload an image:
+The skill wraps the [PixelVault CLI](https://www.npmjs.com/package/pixelvault-cli).
+When you or an agent uploads media:
 
-1. Image is uploaded to PixelVault's edge infrastructure
-2. Stored on Cloudflare R2 (zero egress fees)
-3. Served globally via Cloudflare CDN
-4. You get a permanent URL like `https://img.pixelvault.dev/proj_abc/img_xyz.png`
+1. The file is streamed to PixelVault's edge infrastructure
+2. It is stored on Cloudflare R2
+3. It is served globally through Cloudflare CDN
+4. You get a permanent URL such as `https://img.pixelvault.dev/proj_abc/img_xyz.png`
+   or `https://img.pixelvault.dev/proj_abc/vid_xyz.mp4`
 
 ## Requirements
 
 - Node.js 20+
-- A PixelVault account — free tier: **200 MB storage, 500 uploads/month, 1 GB bandwidth, 5 MB max file size**. No credit card, no trial expiry.
+- A PixelVault account. Free tier: **200 MB storage, 500 uploads/month, 1 GB bandwidth, 5 MB per image, and 25 MB per MP4 video**. No credit card or trial expiry.
 
 ## Examples
 
@@ -93,6 +103,9 @@ Uploaded: https://img.pixelvault.dev/proj_abc/img_xyz.png
 > /pixelvault-upload *.png --folder diagrams
 Uploaded: https://img.pixelvault.dev/proj_abc/img_001.png
 Uploaded: https://img.pixelvault.dev/proj_abc/img_002.png
+
+> /pixelvault-upload demo.mp4
+Uploaded: https://img.pixelvault.dev/proj_abc/vid_xyz.mp4
 
 > /pixelvault-list --json
 [{ "id": "img_xyz", "url": "https://...", "size": 45200, ... }]
