@@ -1,6 +1,6 @@
 ---
 name: pixelvault-upload
-description: Upload image files, MP4 files, or public MP4 URLs to PixelVault and get public CDN URLs back. Use when the user says "upload this image", "host this video", "import this video URL", "give me a URL for this MP4", "screenshot this and host it", "attach this screenshot to the PR/issue", or when an image or video artifact needs a shareable link. Ideal for social publishing workflows and embedding media in GitHub PRs, issues, and comments.
+description: Upload image files, MP4 files, or public MP4 URLs to PixelVault and get public or signed CDN URLs back. Use when the user says "upload this image", "host this video", "import this video URL", "give me a URL for this MP4", "host this privately", "screenshot this and host it", "attach this screenshot to the PR/issue", or when an image or video artifact needs a shareable link. Ideal for social publishing workflows and embedding media in GitHub PRs, issues, and comments.
 args:
   - name: files
     description: Image or MP4 file path(s), public MP4 URL(s), or a glob pattern (e.g. screenshot.png, demo.mp4, ./images/*.jpg)
@@ -23,8 +23,8 @@ npm install -g pixelvault-cli
 ```
 
 Local MP4 uploads require `pixelvault-cli` 0.15.0 or newer; public MP4 URL
-imports require 0.16.0 or newer. Upgrade with `npm install -g pixelvault-cli@latest`
-if `pixelvault --version` is older.
+imports require 0.16.0 or newer; private MP4 delivery requires 0.17.0 or newer.
+Upgrade with `npm install -g pixelvault-cli@latest` if `pixelvault --version` is older.
 
 If no API key is configured, tell the user to run `/pixelvault-setup` first or set `PIXELVAULT_API_KEY` in their environment.
 
@@ -56,7 +56,10 @@ pixelvault upload demo.mp4 --json
 # Public MP4 URL (CLI 0.16.0+; PixelVault imports it directly)
 pixelvault upload "https://media.example.com/demo.mp4"
 
-# Private — returns a signed URL only holders of the link can open
+# Private MP4 + expiry-matched signed poster (CLI 0.17.0+)
+pixelvault upload demo.mp4 --private --expires 12h --json
+
+# Private image or video — returns a signed URL only holders of the link can open
 pixelvault upload mockup.png --private
 pixelvault upload mockup.png --private --expires 7d
 
@@ -73,13 +76,13 @@ pixelvault upload shot.png --meta env=staging --meta run="$CI_RUN_ID"
 pixelvault upload shot.png --describe --wait --json
 ```
 
-4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. For images embedded in a page, README, or email, add `--optimized` for a smaller WebP/AVIF variant. MP4 videos are returned unchanged and support HTTP range requests. Public links are permanent and globally cached; image uploads can also use `--private` for an expiring signed link.
+4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. For images embedded in a page, README, or email, add `--optimized` for a smaller WebP/AVIF variant. MP4 videos are returned unchanged, support HTTP range requests, and include a generated JPEG `poster_url` in `--json` output when frame extraction succeeds. Public links are permanent and globally cached; images and videos can use `--private` for expiring signed delivery.
 
 ## Output Contract
 
 - The CLI prints **only URLs** to stdout (one per line)
 - Human-readable messages go to stderr
-- Use `--json` if you need metadata (`id`, `kind`, `mime_type`, `size`, `filename`)
+- Use `--json` if you need metadata (`id`, `kind`, `mime_type`, `size`, `filename`, and video `poster_url`)
 
 ## Error Handling
 
@@ -88,7 +91,7 @@ pixelvault upload shot.png --describe --wait --json
 | `command not found: pixelvault` | Tell user to `npm install -g pixelvault-cli` |
 | `No API key configured` | Tell user to run `/pixelvault-setup` or set `PIXELVAULT_API_KEY` |
 | `401 Unauthorized` | API key is invalid — tell user to run `pixelvault login` |
-| `402 ... private images` | Free plan's private-image limit reached — tell user to delete some or upgrade |
+| `402 ... private assets` | Free plan's 100-private-asset limit reached — tell the user to delete some or upgrade |
 | `idempotency_key_reuse` | That `--idempotency-key` was already used for a different image (or visibility, or it expired) — use a new key |
 | `413 Payload Too Large` | Images: 5 MB Free, 10 MB Starter, 15 MB Pro. Videos: 25 MB Free, 100 MB Starter, 250 MB Pro |
 | `400 invalid_file` | File bytes are not a supported image or valid MP4 |
@@ -123,21 +126,27 @@ pixelvault upload product-demo.mp4
 pixelvault upload "https://media.example.com/product-demo.mp4"
 # → https://img.pixelvault.dev/proj_abc/vid_xyz.mp4
 
+# Private MP4, signed video and poster links valid for 24 hours
+pixelvault upload product-demo.mp4 --private --expires 24h --json
+
 ```
 
 ## MP4 videos
 
-Local video uploads require CLI 0.15.0+; public URL imports require CLI 0.16.0+:
+Local video uploads require CLI 0.15.0+; public URL imports require 0.16.0+;
+private video uploads require 0.17.0+:
 
 - MP4 only; PixelVault stores the original bytes without transcoding.
+- A stored 640×360 JPEG poster frame is returned as `poster_url` when generation succeeds.
 - Limits: Free 25 MB, Starter 100 MB, Pro 250 MB.
 - The CLI streams local videos and automatically uses multipart upload above
   100 MB.
 - For a public HTTP(S) URL, PixelVault fetches the video directly. The source
   must return a valid `Content-Length`.
-- `--json` is supported. Image-only options (`--folder`, `--private`,
-  `--optimized`, reuse, metadata, and AI descriptions) are rejected.
-- Returned URLs are public, permanent CDN links with HTTP range support.
+- `--private`, `--expires`, and `--json` are supported. Folder, optimization,
+  reuse, metadata, and AI descriptions remain image-only.
+- Public URLs are permanent CDN links with HTTP range support. Private video and
+  poster URLs share the requested expiry.
 
 ## Image retries and duplicates
 
@@ -197,10 +206,11 @@ text found in the image (OCR) and up to 6 short lowercase **tags** (e.g. `boat`,
 
 ## Private uploads
 
-Use `--private` when the image shouldn't be publicly guessable — an internal
-mockup, a CI screenshot, anything you only want to share via the link itself.
-The returned URL is a **signed** URL: it works for anyone who has the full link
-and stops working when it expires.
+Use `--private` when the image or video shouldn't be publicly guessable — an
+internal mockup, CI screenshot, review clip, or anything you only want to share
+via the link itself. The returned URL is a **signed** URL: it works for anyone
+who has the full link and stops working when it expires. Video `poster_url`
+values are signed to the same expiry.
 
 - `--private` alone → default lifetime (7 days).
 - `--private --expires <duration>` → custom lifetime. Accepts `30m`, `12h`,
