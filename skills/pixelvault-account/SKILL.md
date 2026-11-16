@@ -1,6 +1,6 @@
 ---
 name: pixelvault-account
-description: Check PixelVault quota/usage, manage API keys and signed media-job webhooks, and start an upgrade or open the billing portal. Use before a bulk upload ("do I have room for 200 images?", "how much storage is left?", "what plan am I on?"), when the user asks to "list my API keys", "rotate my PixelVault key", "revoke a key", "create a webhook", "notify me when video optimization finishes", "show webhook failures", "upgrade my PixelVault plan", "change or cancel my subscription", or after a quota/limit error on upload.
+description: Check PixelVault quota/usage, manage API keys and signed media lifecycle webhooks, and start an upgrade or open the billing portal. Use before a bulk upload ("do I have room for 200 images?", "how much storage is left?", "what plan am I on?"), when the user asks to "list my API keys", "rotate my PixelVault key", "revoke a key", "create a webhook", "notify me when media changes or an asynchronous job finishes", "show webhook failures", "upgrade my PixelVault plan", "change or cancel my subscription", or after a quota/limit error on upload.
 args:
   - name: action
     description: What to do - usage, keys, webhooks list/create/update/delete/deliveries/rotate-secret, upgrade <starter|pro>, or billing
@@ -9,11 +9,11 @@ args:
 
 # PixelVault Account
 
-Check quota and usage, manage API keys and signed media-job webhooks, and start a plan upgrade or open the billing portal.
+Check quota and usage, manage API keys and signed media lifecycle webhooks, and start a plan upgrade or open the billing portal.
 
 ## Prerequisites
 
-Requires `pixelvault-cli` **0.6.0 or newer** for `usage` and `keys`, **0.7.0 or newer** for `upgrade` and `billing`, and **0.21.0 or newer** for `webhooks` (`pixelvault --help` should list them). Update with `npm install -g pixelvault-cli@latest`. If the CLI is missing or unconfigured, tell the user to run `/pixelvault-setup`.
+Requires `pixelvault-cli` **0.6.0 or newer** for `usage` and `keys`, **0.7.0 or newer** for `upgrade` and `billing`, **0.21.0 or newer** for basic `webhooks`, and **0.22.0 or newer** for all lifecycle event names (`pixelvault --help` should list them). Update with `npm install -g pixelvault-cli@latest`. If the CLI is missing or unconfigured, tell the user to run `/pixelvault-setup`.
 
 These endpoints need a **secret** key (`pv_live_...`). Publishable keys get a 403. `upgrade` and `billing` need a **live** key: `pv_test_...` keys are refused too. Webhooks require Starter or Pro.
 
@@ -66,15 +66,19 @@ The self-revoke guard is best-effort. If you lock yourself out, the user can rec
 
 ## Manage webhooks
 
-Use webhooks when an API integration should receive the final result instead of polling a video:
+Use webhooks when an API integration should react to media creation/deletion or receive an asynchronous job's terminal result instead of polling:
 
 ```bash
-# create: stdout is ONLY the one-time signing secret
+# Omit --events to subscribe to every lifecycle event. stdout is ONLY the one-time signing secret.
 SECRET=$(pixelvault webhooks create https://api.example.com/pixelvault-events \
-  --description "social pipeline" --events completed,failed)
+  --description "media pipeline")
+
+# Or select exact events.
+pixelvault webhooks update <id> \
+  --events media.created,media.deleted,export.completed,export.failed
 
 pixelvault webhooks list
-pixelvault webhooks update <id> --events completed
+pixelvault webhooks update <id> --events video.optimization.completed
 pixelvault webhooks update <id> --pause       # --resume to turn it back on
 pixelvault webhooks deliveries <id> --limit 50
 pixelvault webhooks rotate-secret <id>        # stdout is the replacement secret
@@ -82,7 +86,10 @@ pixelvault webhooks delete <id>
 ```
 
 - Starter supports 3 endpoints; Pro supports 10; Free returns `webhooks_require_paid_plan`.
-- Supported events: `video.optimization.completed` and `video.optimization.failed`.
+- Supported events: `media.created`, `media.deleted`, `image.description.completed`, `image.description.failed`, `export.completed`, `export.failed`, `video.optimization.completed`, and `video.optimization.failed`.
+  - `media.created` reports `source=upload|url_import|claim|generation|edit`; use it for successful generation/edit outputs.
+  - Generation and editing are synchronous, so failures are returned by those API calls and do not emit redundant failure webhooks.
+  - `media.deleted` identifies the deleted object but deliberately omits a dead URL.
 - Store each `whsec_...` value in the receiving service's secret manager. It is shown only on create/rotation; never paste it into chat, issues, logs, or a repo.
 - Verify `X-PixelVault-Webhook-Signature` against the raw request body with HMAC-SHA256, reject stale `X-PixelVault-Webhook-Timestamp` values, and deduplicate `X-PixelVault-Webhook-Id`. Delivery is at least once.
 - Non-2xx, network failures, and timeouts retry after about 1m, 5m, 30m, and 2h. The 30-day delivery log includes status, attempts, response code and bounded error, never response bodies.
