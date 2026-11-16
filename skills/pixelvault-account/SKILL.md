@@ -24,9 +24,9 @@ pixelvault usage          # plan, period, used / limit / remaining
 pixelvault usage --json   # the API `data` object
 ```
 
-Reports storage and uploads against the plan limits, when the period resets, and the monthly bandwidth **limit**. Bandwidth usage is intentionally not reported. Usage is scoped to the key's project.
+Reports storage and uploads against plan limits; generation/edit credits and video optimization/enrichment seconds; and the UTC reset. `bandwidth` always includes the real limit, `unit: "bytes"`, accounting period, and reset. The CDN counter is approximate and is not reliably readable by the API, so it currently returns `status: "unavailable"` with `used`, `remaining`, and `measured_at` set to `null`. Null means unknown, never zero. The contract distinguishes numeric zero (`available`), no limit (`unlimited`), and stale accounting (`freshness: "delayed"`).
 
-Before uploading N files, compare `remaining.uploads` and `remaining.storage_bytes` to what you are about to send. If there is not enough room, tell the user instead of starting a partial batch.
+Before uploading N files, compare `remaining.uploads` and `remaining.storage_bytes` to what you are about to send. Check the relevant credit/seconds object before paid processing. A usage check does not reserve capacity or guarantee that a later CDN link will serve.
 
 ## List keys
 
@@ -86,8 +86,8 @@ pixelvault webhooks delete <id>
 ```
 
 - Starter supports 3 endpoints; Pro supports 10; Free returns `webhooks_require_paid_plan`.
-- Supported events: `media.created`, `media.deleted`, `image.description.completed`, `image.description.failed`, `export.completed`, `export.failed`, `video.optimization.completed`, and `video.optimization.failed`.
-  - `media.created` reports `source=upload|url_import|claim|generation|edit`; use it for successful generation/edit outputs.
+- Supported events: `media.created`, `media.deleted`, `image.description.completed`, `image.description.failed`, `export.completed`, `export.failed`, `video.optimization.completed`, `video.optimization.failed`, `video.enrichment.completed`, and `video.enrichment.failed`.
+  - Video enrichment terminal events carry stable event, asset, and job identifiers. Delivery retries keep the same event ID; retrying a failed enrichment job creates a new job and event ID.
   - Generation and editing are synchronous, so failures are returned by those API calls and do not emit redundant failure webhooks.
   - `media.deleted` identifies the deleted object but deliberately omits a dead URL.
 - Store each `whsec_...` value in the receiving service's secret manager. It is shown only on create/rotation; never paste it into chat, issues, logs, or a repo.
