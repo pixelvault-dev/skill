@@ -182,6 +182,18 @@ private video uploads require 0.17.0+; one-step social-ready upload requires 0.2
   hosted video. The source must be at most 100 MB and 60 seconds.
 - Monthly social-ready output: Free 2 minutes, Starter 30, Pro 120. Failed jobs
   refund reserved seconds. Repeating the command reuses a running/completed job.
+- `pixelvault enrich-video <id>` generates a plain-text transcript, timed WebVTT
+  captions, timestamped JSON segments, and bounded JPEG storyboard sheets for an
+  owned upload. Use `--no-wait` to enqueue or `--json` for the full video state.
+- REST: `POST /v1/videos/<id>/enrich`; MCP: `enrich_video`. Both are idempotent
+  and return/poll `enrichment.status` (`pending`, `processing`, `complete`, or
+  `failed`). Videos without audio skip only the transcript.
+- Enrichment sources must be 1 second through 10 minutes and at most 100 MB.
+  Monthly source-minute allowances are Free 2, Starter 30, Pro 120; the
+  remaining allowance must cover the full video.
+- Transcript and storyboard artifacts inherit the video's visibility. Private
+  artifact URLs are signed to the same expiry, and deleting the video removes
+  every artifact.
 
 ## Image and PDF retries and duplicates
 
