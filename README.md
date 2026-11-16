@@ -3,6 +3,7 @@ tags:
   - image hosting
   - image hosting for agents
   - video hosting
+  - audio hosting
   - CDN
   - screenshots
   - image management
@@ -23,16 +24,17 @@ dependencies:
 ---
 # PixelVault — Media Hosting for AI Agents
 
-Agent skills for hosting images and MP4 videos, creating social-ready copies, and
-running resumable transcript/storyboard enrichment workflows from any agent that reads `SKILL.md`.
+Agent skills for hosting images, MP4 videos, and original MP3/WAV/M4A/OGG audio,
+creating social-ready video copies, and running resumable transcript/storyboard
+enrichment workflows from any agent that reads `SKILL.md`.
 
 [PixelVault](https://pixelvault.dev) is agent-first media hosting for developers
 and AI coding agents. These skills let an agent upload screenshots, diagrams,
-mockups, generated images, and MP4 videos and get an instant, globally cached
-CDN URL without a manual dashboard.
+mockups, generated images, MP4 videos, and original audio and get an instant,
+globally cached CDN URL without a manual dashboard.
 
 **When it triggers:** "screenshot this and host it", "upload this image and give
-me the URL", "host this MP4", "give me a URL for this video", or any task that
+me the URL", "host this MP4", "give me a URL for this audio", or any task that
 produces media needing a shareable link.
 
 ## Why PixelVault for agents
@@ -46,7 +48,7 @@ produces media needing a shareable link.
 
 | Skill | Description |
 |-------|-------------|
-| `/pixelvault-upload <file-or-url>` | Upload images or MP4s, get CDN URLs, make short videos social-ready, or enrich MP4s with transcripts/storyboards |
+| `/pixelvault-upload <file-or-url>` | Upload images, MP4 videos, or original MP3/WAV/M4A/OGG audio; get public/signed CDN URLs; manage lifecycle; or run video optimization/enrichment |
 | `/pixelvault-host-image` | Zero-install: host a file or URL with one `curl`, no signup (keyless, 30-day links; add a key for permanent). Published on ClawHub for OpenClaw |
 | `/pixelvault-setup` | Install CLI and configure API key |
 | `/pixelvault-list` | List recently uploaded images, search them by AI description or tag, and describe an already-uploaded image (alt text, OCR, tags; needs `pixelvault-cli` 0.13.0+ for tags/describe) |
@@ -67,7 +69,7 @@ npx skills add pixelvault-dev/skill
 Then, inside your agent:
 
 1. Run `/pixelvault-setup` to configure your API key
-2. Upload media with `/pixelvault-upload screenshot.png`, `/pixelvault-upload demo.mp4`, or `/pixelvault-upload https://media.example.com/demo.mp4`. Ask it to enrich a local MP4 or existing `vid_...` asset for resumable transcript and storyboard artifacts.
+2. Upload media with `/pixelvault-upload screenshot.png`, `/pixelvault-upload demo.mp4`, `/pixelvault-upload episode.ogg`, or a public media URL. Ask it to manage an `aud_...` asset or enrich a local MP4/existing `vid_...` asset.
 
 ## Use it from any agent
 
@@ -82,10 +84,11 @@ Then, inside your agent:
 The skill wraps the [PixelVault CLI](https://www.npmjs.com/package/pixelvault-cli).
 When you or an agent uploads media:
 
-1. A local file is streamed, or PixelVault imports a public MP4 URL directly.
+1. A local file is read by the CLI, or PixelVault securely imports a public media URL.
 2. It is stored on Cloudflare R2 and served globally through Cloudflare CDN.
-3. You get a permanent URL such as `https://img.pixelvault.dev/proj_abc/img_xyz.png`
-   or `https://img.pixelvault.dev/proj_abc/vid_xyz.mp4`.
+3. You get a URL such as `https://img.pixelvault.dev/proj_abc/img_xyz.png`,
+   `https://img.pixelvault.dev/proj_abc/vid_xyz.mp4`, or
+   `https://img.pixelvault.dev/proj_abc/aud_xyz.ogg`.
 4. For social publishing, the agent can create a separate H.264/AAC fast-start
    copy without changing the original (up to 100 MB and 60 seconds).
 5. For transcript/storyboard enrichment, the agent exposes the asset and job IDs immediately, waits with a bounded timeout, and can resume later without another upload.
@@ -94,6 +97,7 @@ When you or an agent uploads media:
 
 - Node.js 20+
 - A PixelVault account. Free tier: **200 MB storage, 500 uploads/month, 1 GB bandwidth, 5 MB per image, and 25 MB per MP4 video**. No credit card or trial expiry.
+- Audio originals have an approved global maximum of **25,000,000 bytes**. This is a byte ceiling, not a plan allowance or reserved capacity.
 
 ## Examples
 
@@ -110,6 +114,9 @@ Uploaded: https://img.pixelvault.dev/proj_abc/vid_xyz.mp4
 
 > /pixelvault-upload https://media.example.com/demo.mp4
 Uploaded: https://img.pixelvault.dev/proj_abc/vid_xyz.mp4
+
+> /pixelvault-upload episode.ogg
+Uploaded: https://img.pixelvault.dev/proj_abc/aud_xyz.ogg
 
 > Make that uploaded video social-ready
 Optimized: https://img.pixelvault.dev/proj_abc/vid_xyz.social.mp4
