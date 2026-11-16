@@ -1,9 +1,9 @@
 ---
 name: pixelvault-upload
-description: Upload image files, MP4 files, or public MP4 URLs to PixelVault and get public or signed CDN URLs back; optionally create a social-ready H.264/AAC fast-start video copy. Use when the user says "upload this image", "host this video", "import this video URL", "give me a URL for this MP4", "make this video social-ready", "prepare this MP4 for social posting", "host this privately", "screenshot this and host it", "attach this screenshot to the PR/issue", or when an image or video artifact needs a shareable link. Ideal for social publishing workflows and embedding media in GitHub PRs, issues, and comments.
+description: Upload image files, PDFs, MP4 files, or public image/PDF/MP4 URLs to PixelVault and get public or signed CDN URLs back; optionally create a social-ready H.264/AAC fast-start video copy. Use when the user says "upload this image", "host this PDF", "turn this PDF into a link", "host this video", "import this video URL", "give me a URL for this MP4", "make this video social-ready", "prepare this MP4 for social posting", "host this privately", "screenshot this and host it", "attach this screenshot to the PR/issue", or when an image, document, or video artifact needs a shareable link. Ideal for social publishing workflows and attaching artifacts to GitHub PRs, issues, and comments.
 args:
   - name: files
-    description: Image or MP4 file path(s), public MP4 URL(s), or a glob pattern (e.g. screenshot.png, demo.mp4, ./images/*.jpg)
+    description: Image, PDF, or MP4 file path(s), public image/PDF/MP4 URL(s), or a glob pattern (e.g. screenshot.png, report.pdf, demo.mp4)
     required: true
   - name: folder
     description: Optional folder to organize images in
@@ -12,7 +12,7 @@ args:
 
 # PixelVault Upload
 
-Upload image files, MP4 files, or public MP4 URLs to PixelVault and return CDN URLs.
+Upload images, PDFs, MP4 files, or public URLs to PixelVault and return CDN URLs.
 
 ## Prerequisites
 
@@ -52,6 +52,9 @@ pixelvault upload *.png --folder screenshots
 # Smaller WebP/AVIF link for embedding in a page, README or email (CLI 0.8.0+)
 pixelvault upload photo.png --optimized
 
+# PDF document — URL downloads the original file
+pixelvault upload report.pdf
+
 # Local MP4 video (CLI 0.15.0+; streams the file, multipart above 100 MB)
 pixelvault upload demo.mp4
 pixelvault upload demo.mp4 --json
@@ -69,7 +72,7 @@ pixelvault upload demo.mp4 --social --json
 # Convert an existing hosted video (CLI 0.19.0+)
 pixelvault optimize-video vid_abc123
 
-# Private image or video — returns a signed URL only holders of the link can open
+# Private image, PDF, or video — returns a signed URL only holders of the link can open
 pixelvault upload mockup.png --private
 pixelvault upload mockup.png --private --expires 7d
 
@@ -86,7 +89,7 @@ pixelvault upload shot.png --meta env=staging --meta run="$CI_RUN_ID"
 pixelvault upload shot.png --describe --wait --json
 ```
 
-4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. For images embedded in a page, README, or email, add `--optimized` for a smaller WebP/AVIF variant. MP4 videos support HTTP range requests and include a generated JPEG `poster_url` in `--json` output when frame extraction succeeds. When the user asks for social publishing, use `pixelvault upload <video.mp4> --social`; it waits and prints the post-ready URL while preserving the original. Add `--json` when both `original_url` and `social_ready_url` are needed. Use `pixelvault optimize-video <id>` only for an existing hosted video. If a normal upload prints `Video compatibility warning`, report the exact warning: the upload succeeded and its original URL works, but do not describe it as social-ready. Public links are permanent and globally cached; images, videos, and their completed social-ready copies can use `--private` for expiring signed delivery.
+4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. For images embedded in a page, README, or email, add `--optimized` for a smaller WebP/AVIF variant. PDF URLs always download the original document and reject image transforms. MP4 videos support HTTP range requests and include a generated JPEG `poster_url` in `--json` output when frame extraction succeeds. When the user asks for social publishing, use `pixelvault upload <video.mp4> --social`; it waits and prints the post-ready URL while preserving the original. Add `--json` when both `original_url` and `social_ready_url` are needed. Use `pixelvault optimize-video <id>` only for an existing hosted video. If a normal upload prints `Video compatibility warning`, report the exact warning: the upload succeeded and its original URL works, but do not describe it as social-ready. Public links are permanent and globally cached; images, PDFs, videos, and their completed social-ready copies can use `--private` for expiring signed delivery.
 
 ## Output Contract
 
@@ -102,9 +105,9 @@ pixelvault upload shot.png --describe --wait --json
 | `No API key configured` | Tell user to run `/pixelvault-setup` or set `PIXELVAULT_API_KEY` |
 | `401 Unauthorized` | API key is invalid — tell user to run `pixelvault login` |
 | `402 ... private assets` | Free plan's 100-private-asset limit reached — tell the user to delete some or upgrade |
-| `idempotency_key_reuse` | That `--idempotency-key` was already used for a different image (or visibility, or it expired) — use a new key |
-| `413 Payload Too Large` | Images: 5 MB Free, 10 MB Starter, 15 MB Pro. Videos: 25 MB Free, 100 MB Starter, 250 MB Pro |
-| `400 invalid_file` | File bytes are not a supported image or valid MP4 |
+| `idempotency_key_reuse` | That `--idempotency-key` was already used for a different upload (or visibility, or it expired) — use a new key |
+| `413 Payload Too Large` | Images/PDFs: 5 MB Free, 10 MB Starter, 15 MB Pro. Videos: 25 MB Free, 100 MB Starter, 250 MB Pro |
+| `400 invalid_file` | File bytes are not a supported image, PDF, or valid MP4 |
 | `415 unsupported_media_type` | Video uploads accept MP4 only |
 | `optimization_duration_too_long` | Social-ready optimization supports clips up to 60 seconds; report the limit and keep the original URL |
 | `optimization_source_too_large` | Social-ready optimization supports source MP4s up to 100 MB; keep the original URL |
@@ -120,6 +123,10 @@ pixelvault upload screenshot.png
 # Upload with JSON metadata
 pixelvault upload diagram.svg --json
 # → { "id": "img_xyz", "url": "https://...", "size": 12400, ... }
+
+# Upload a PDF; the returned URL downloads the unchanged document
+pixelvault upload report.pdf
+# → https://img.pixelvault.dev/proj_abc/img_xyz.pdf
 
 # Public raster uploads also include optimized_url (WebP/AVIF, usually much smaller) in --json output.
 # `--optimized` prints it instead of url, and falls back to url when there is none (SVG, GIF, private).
@@ -164,7 +171,8 @@ private video uploads require 0.17.0+; one-step social-ready upload requires 0.2
 - For a public HTTP(S) URL, PixelVault fetches the video directly. The source
   must return a valid `Content-Length`.
 - `--private`, `--expires`, `--social`, and `--json` are supported. Folder,
-  image optimization, reuse, metadata, and AI descriptions remain image-only.
+  reuse, and metadata are available for images and PDFs; image optimization and
+  AI descriptions remain image-only.
 - `pixelvault upload <video> --social` preserves the original, creates a
   **separate** H.264/AAC fast-start MP4, waits, and prints its URL. `--json`
   includes both `original_url` and `social_ready_url`.
@@ -175,18 +183,18 @@ private video uploads require 0.17.0+; one-step social-ready upload requires 0.2
 - Monthly social-ready output: Free 2 minutes, Starter 30, Pro 120. Failed jobs
   refund reserved seconds. Repeating the command reuses a running/completed job.
 
-## Image retries and duplicates
+## Image and PDF retries and duplicates
 
-Agents retry, and re-render the same screenshot. Two flags (CLI 0.9.0+) keep that
+Agents retry, and re-upload the same artifacts. Two flags (CLI 0.9.0+) keep that
 from piling up copies:
 
 - `--idempotency-key <key>` — use when a call might be **retried** (timeouts,
   flaky CI). Repeating the same key with the same file returns the **original**
-  image; a note ("Replayed: …") goes to stderr and stdout is still the URL. Use
-  a stable, unique key per image, e.g. `"$CI_RUN_ID-<name>"`. Single file only.
-  Reusing a key for a *different* image fails with `idempotency_key_reuse`.
-- `--dedupe` — use when you may upload the **same bytes again** (a logo, an
-  unchanged screenshot). If an identical image already exists in the project it
+  upload; a note ("Replayed: …") goes to stderr and stdout is still the URL. Use
+  a stable, unique key per upload, e.g. `"$CI_RUN_ID-<name>"`. Single file only.
+  Reusing a key for *different* bytes fails with `idempotency_key_reuse`.
+- `--dedupe` — use when you may upload the **same bytes again** (a logo, PDF, or
+  unchanged screenshot). If an identical upload already exists in the project it
   is returned and no new upload is stored or counted. Best-effort.
 
 They can't be combined. Prefer the key when you control retries; use `--dedupe`
@@ -194,14 +202,14 @@ when you don't.
 
 ## Custom metadata
 
-Tag images with your own key/values (CLI 0.11.0+) and find them again later with
-`/pixelvault-list`:
+Tag images and PDFs with your own key/values (CLI 0.11.0+) and find them again
+later with `/pixelvault-list`:
 
 - `--meta key=value` — repeatable, string values: `--meta env=prod --meta run=42`.
 - `--metadata '<json>'` — a JSON object, for typed values: `--metadata '{"n":3}'`.
 - Up to 50 top-level keys and 4 KB; no NUL characters. Don't put secrets in it.
 - It is **ignored** when `--dedupe` or `--idempotency-key` returns an existing
-  image. Change an image's metadata afterwards with
+  upload. Change its metadata afterwards with
   `pixelvault meta <id> --meta k=v` — that **replaces** the whole object
   (include every key to keep); `pixelvault meta <id> --clear` removes it.
 
@@ -233,10 +241,10 @@ text found in the image (OCR) and up to 6 short lowercase **tags** (e.g. `boat`,
 
 ## Private uploads
 
-Use `--private` when the image or video shouldn't be publicly guessable — an
-internal mockup, CI screenshot, review clip, or anything you only want to share
-via the link itself. The returned URL is a **signed** URL: it works for anyone
-who has the full link and stops working when it expires. Video `poster_url`
+Use `--private` when the image, PDF, or video shouldn't be publicly guessable —
+an internal document, mockup, CI screenshot, review clip, or anything you only
+want to share via the link itself. The returned URL is a **signed** URL: it works
+for anyone who has the full link and stops working when it expires. Video `poster_url`
 values are signed to the same expiry.
 
 - `--private` alone → default lifetime (7 days).
@@ -248,7 +256,8 @@ values are signed to the same expiry.
 
 ## Transform an image result
 
-Every returned URL supports on-the-fly transforms — just append query params (no
+Image URLs support on-the-fly transforms — just append query params (no
 re-upload): `?w=400` (thumbnail), `?fmt=webp`, `?segment=foreground` (transparent
-cut-out), `?saturation=0` (grayscale), `?tile=logo.png` (watermark). For the full
+cut-out), `?saturation=0` (grayscale), `?tile=logo.png` (watermark). PDFs are
+forced downloads and reject every image transform parameter. For the full
 vocabulary use `/pixelvault-transform`.
