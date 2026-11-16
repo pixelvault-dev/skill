@@ -1,9 +1,9 @@
 ---
 name: pixelvault-upload
-description: Upload image files, PDFs, MP4 files, or public media URLs to PixelVault and get public or signed CDN URLs back; optionally create a social-ready video copy or run a resumable MP4 transcript and storyboard job. Use when the user says "upload this image", "host this PDF", "host this video", "transcribe this video", "make a storyboard", "enrich this MP4", "resume this video job", "make this video social-ready", "host this privately", "screenshot this and host it", or when an image, document, or video artifact needs a shareable link.
+description: Upload image files, PDFs, MP4 videos, MP3/WAV/M4A/OGG audio, or public media URLs to PixelVault and get public or signed CDN URLs back; optionally create a social-ready video copy or run a resumable MP4 transcript and storyboard job. Use when the user says "upload this image", "host this PDF", "host this video", "host this audio", "transcribe this video", "make a storyboard", "enrich this MP4", "resume this video job", "make this video social-ready", "host this privately", "screenshot this and host it", or when a media artifact needs a shareable link.
 args:
   - name: files
-    description: Image, PDF, or MP4 file path(s), public image/PDF/MP4 URL(s), or a glob pattern (e.g. screenshot.png, report.pdf, demo.mp4)
+    description: Image, PDF, MP4, MP3, WAV, M4A, or OGG path(s), public media URL(s), or a glob pattern
     required: true
   - name: folder
     description: Optional folder to organize images in
@@ -12,7 +12,7 @@ args:
 
 # PixelVault Upload
 
-Upload images, PDFs, MP4 files, or public URLs to PixelVault and return CDN URLs.
+Upload images, PDFs, MP4 videos, or MP3/WAV/M4A/OGG audio and return CDN URLs.
 
 ## Prerequisites
 
@@ -22,13 +22,14 @@ The `pixelvault` CLI must be installed and configured. If the command is not fou
 npm install -g pixelvault-cli
 ```
 
-Use `pixelvault-cli` 0.23.1 or newer for the complete video workflow below.
-`enrich-video` first shipped in 0.23.0. Check with `pixelvault --version` and
-upgrade before showing or running an enrichment command:
+Use `pixelvault-cli` 0.24.0 or newer for the complete image, PDF, video, and audio workflows below.
+`enrich-video` first shipped in 0.23.0. Check with `pixelvault --version` and upgrade before showing
+or running an enrichment or audio command:
 
 ```bash
 npm install -g pixelvault-cli@latest
 ```
+
 
 If no API key is configured, tell the user to run `/pixelvault-setup` first or set `PIXELVAULT_API_KEY` in their environment.
 
@@ -92,7 +93,25 @@ pixelvault enrich-video vid_abc123 --timeout 1200 --json
 pixelvault upload "https://media.example.com/demo.mp4" --json
 pixelvault enrich-video vid_from_previous_output --json
 
-# Private image, PDF, or video — returns a signed URL only holders of the link can open
+# Host original audio; server validates actual bytes, container, and codec
+pixelvault audio upload episode.mp3 --json
+
+# Secure URL import with retry safety, deletion TTL, metadata, and organization
+pixelvault audio upload "https://media.example.com/episode.ogg" \
+  --idempotency-key "$CI_RUN_ID-episode-1" --delete-after 7d \
+  --folder episodes --meta season=1 --json
+
+# Private audio; signed-link expiry is separate from asset deletion
+pixelvault audio upload interview.m4a --private --link-expires 12h --delete-after 7d --json
+
+# Resume from the stable ID, discover/filter, update organization, re-sign, or delete
+pixelvault audio get aud_abc123 --json
+pixelvault audio list --folder episodes --meta season=1 --json
+pixelvault audio update aud_abc123 --folder archive --metadata '{"reviewed":true}' --json
+pixelvault audio sign aud_abc123 --expires 1h --json
+pixelvault audio delete aud_abc123
+
+# Private image, PDF, video, or audio — returns a signed URL only holders of the link can open
 pixelvault upload mockup.png --private
 pixelvault upload mockup.png --private --expires 7d
 
@@ -109,14 +128,14 @@ pixelvault upload shot.png --meta env=staging --meta run="$CI_RUN_ID"
 pixelvault upload shot.png --describe --wait --json
 ```
 
-4. **Report** — The CLI prints one CDN URL per line to stdout; use `--json` for identifiers and artifact metadata. Report an enrichment's `asset_id` and `job_id` as soon as they appear, then its terminal state. On success, return `original` plus only the transcript and storyboard artifacts present in `artifacts`, preserving each artifact's `type`, `privacy`, and expiry. Never construct a URL for a pending or skipped artifact. For a private asset, return only signed URLs and their expiry; never substitute a public URL. `--no-wait` is a successful queued result, not completion. A local timeout does not cancel the server job: retain the IDs and resume with `pixelvault enrich-video <asset_id> --json`. A failed attempt can be retried explicitly; the later attempt has a new job ID. For images embedded in a page, README, or email, add `--optimized`. PDF URLs download original bytes. For social publishing, use `pixelvault upload <video.mp4> --social`; use `pixelvault optimize-video <id>` only for an existing video.
+4. **Report** — The CLI prints one CDN URL per line to stdout; use `--json` for identifiers and media metadata. For audio, report the stable `aud_...` ID, original URL, privacy and expiry, container, codec, duration, sample rate, and channels. For video enrichment, report `asset_id` and `job_id` immediately, then the terminal state. Return only real artifact URLs and preserve privacy/expiry. Never construct a pending artifact URL or substitute a public URL for a private asset. A local timeout does not cancel server work.
 
 ## Output Contract
 
 - The CLI prints **only URLs** to stdout (one per line)
 - Human-readable messages go to stderr
-- Use `--json` if you need metadata (`id`, `kind`, `mime_type`, `size`, `filename`, and video `original_url`, `social_ready_url`, `poster_url`, dimensions, duration, codecs, `fast_start`, `social_compatible`, `compatibility_warnings`, and `social_optimization`)
-- `enrich-video --json` returns the original-video artifact and available transcript (`text`, `vtt`, `segments`) and storyboard (`index`, `sheet`) artifacts with state, privacy, and expiry data
+- Use `--json` for metadata (`id`, `kind`, `mime_type`, `size`, `filename`; inspected audio `container`, `codec`, `duration_seconds`, `sample_rate`, `channels`; and video status/artifacts).
+- `enrich-video --json` returns the original-video artifact and available transcript (`text`, `vtt`, `segments`) and storyboard (`index`, `sheet`) artifacts with state, privacy, and expiry data.
 
 ## Error Handling
 
@@ -127,7 +146,7 @@ pixelvault upload shot.png --describe --wait --json
 | `401 Unauthorized` | API key is invalid — tell user to run `pixelvault login` |
 | `402 ... private assets` | Free plan's 100-private-asset limit reached — tell the user to delete some or upgrade |
 | `idempotency_key_reuse` | That `--idempotency-key` was already used for a different upload (or visibility, or it expired) — use a new key |
-| `413 Payload Too Large` | Images/PDFs: 5 MB Free, 10 MB Starter, 15 MB Pro. Videos: 25 MB Free, 100 MB Starter, 250 MB Pro |
+| `413 Payload Too Large` | Images/PDFs: 5 MB Free, 10 MB Starter, 15 MB Pro. Videos: 25 MB Free, 100 MB Starter, 250 MB Pro. Audio originals: approved global 25,000,000-byte maximum (not a plan allowance) |
 | `400 invalid_file` | File bytes are not a supported image, PDF, or valid MP4 |
 | `415 unsupported_media_type` | Video uploads accept MP4 only |
 | `optimization_duration_too_long` | Social-ready optimization supports clips up to 60 seconds; report the limit and keep the original URL |
@@ -140,6 +159,9 @@ pixelvault upload shot.png --describe --wait --json
 | Local timeout | The server job is still queued/running. Report IDs and resume with `pixelvault enrich-video <asset_id> --json` |
 | URL passed to `enrich-video` | Unsupported source. Import with `pixelvault upload <url> --json`, then pass the returned video `id` |
 | Missing transcript on a silent video | Expected: transcript is `skipped` with `reason: no_audio`; return the storyboard if complete |
+| `audio_policy_pending` | The deployment is missing its approved 25,000,000-byte ceiling and has failed closed. Do not retry in a loop. |
+| Audio `file_too_large` | Audio originals exceed the approved global 25,000,000-byte maximum. URL import uses the same product limit; do not claim a plan allowance. |
+| `invalid_audio` / `unsupported_audio_codec` | The bytes are not a supported MP3, PCM/float WAV, AAC M4A, or Opus/Vorbis OGG. Renaming the file does not bypass byte validation. |
 
 ## Video enrichment workflow
 
@@ -208,6 +230,13 @@ pixelvault upload product-demo.mp4 --social
 # Convert an existing hosted MP4
 pixelvault optimize-video vid_xyz
 # → https://img.pixelvault.dev/proj_abc/vid_xyz.social.mp4
+
+# Host original audio and print its CDN URL
+pixelvault audio upload product-podcast.ogg
+# → https://img.pixelvault.dev/proj_abc/aud_xyz.ogg
+
+# Private original with distinct link and deletion lifetimes
+pixelvault audio upload interview.m4a --private --link-expires 1h --delete-after 7d --json
 ```
 
 ## MP4 videos
@@ -234,6 +263,31 @@ private video uploads require 0.17.0+; one-step social-ready upload requires 0.2
   hosted video. The source must be at most 100 MB and 60 seconds.
 - Monthly social-ready output: Free 2 minutes, Starter 30, Pro 120. Failed jobs
   refund reserved seconds. Repeating the command reuses a running/completed job.
+
+## Original audio hosting
+
+Audio hosting requires CLI 0.24.0+:
+
+- Accepted container/codec combinations: MP3; PCM integer or IEEE-float WAV; AAC
+  in M4A; Opus or Vorbis in OGG. PixelVault inspects bytes and rejects renamed or
+  MIME-spoofed files.
+- `pixelvault audio upload <path-or-public-url>` stores original bytes unchanged.
+  Authenticated URL sources must be downloaded locally first.
+- `--private` fails closed and returns only a signed original URL.
+  `--link-expires` controls that URL; `--delete-after` deletes the asset. Neither
+  setting implies the other.
+- `--idempotency-key` is owner-scoped and replay-safe. Reuse it only for the same
+  source, privacy, TTL, metadata, folder, and collection.
+- Responses include stable `aud_...` IDs, MIME type, bytes, duration, codec,
+  sample rate, channels, privacy, organization, and expiry.
+- Public and signed-private originals support byte ranges. Audio transforms,
+  editing, conversion, HLS/DASH, and audio-only transcription are intentionally
+  unsupported.
+- Audio originals have an approved global maximum of 25,000,000 bytes. This is
+  not a plan allowance or reserved capacity. Local and URL-import paths use the
+  same product limit.
+- Use `audio get`, `list`, `update`, `sign`, and `delete` for lifecycle management.
+  Private signed links can be refreshed without changing privacy or deletion TTL.
 
 ## Image and PDF retries and duplicates
 
