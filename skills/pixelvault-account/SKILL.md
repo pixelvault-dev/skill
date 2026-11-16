@@ -1,21 +1,21 @@
 ---
 name: pixelvault-account
-description: Check PixelVault quota/usage, manage API keys, and start an upgrade or open the billing portal. Use before a bulk upload ("do I have room for 200 images?", "how much storage is left?", "what plan am I on?"), when the user asks to "list my API keys", "rotate my PixelVault key", "revoke a key", "create a new key for CI", "upgrade my PixelVault plan", "change or cancel my subscription", or after a quota/limit error on upload.
+description: Check PixelVault quota/usage, manage API keys and signed media-job webhooks, and start an upgrade or open the billing portal. Use before a bulk upload ("do I have room for 200 images?", "how much storage is left?", "what plan am I on?"), when the user asks to "list my API keys", "rotate my PixelVault key", "revoke a key", "create a webhook", "notify me when video optimization finishes", "show webhook failures", "upgrade my PixelVault plan", "change or cancel my subscription", or after a quota/limit error on upload.
 args:
   - name: action
-    description: What to do - usage, keys list, keys create, keys revoke <id>, rotate, upgrade <starter|pro>, or billing
+    description: What to do - usage, keys, webhooks list/create/update/delete/deliveries/rotate-secret, upgrade <starter|pro>, or billing
     required: false
 ---
 
 # PixelVault Account
 
-Check quota and usage, list, create, rotate, or revoke API keys, and start a plan upgrade or open the billing portal.
+Check quota and usage, manage API keys and signed media-job webhooks, and start a plan upgrade or open the billing portal.
 
 ## Prerequisites
 
-Requires `pixelvault-cli` **0.6.0 or newer** for `usage` and `keys`, and **0.7.0 or newer** for `upgrade` and `billing` (`pixelvault --help` should list them). Update with `npm install -g pixelvault-cli@latest`. If the CLI is missing or unconfigured, tell the user to run `/pixelvault-setup`.
+Requires `pixelvault-cli` **0.6.0 or newer** for `usage` and `keys`, **0.7.0 or newer** for `upgrade` and `billing`, and **0.21.0 or newer** for `webhooks` (`pixelvault --help` should list them). Update with `npm install -g pixelvault-cli@latest`. If the CLI is missing or unconfigured, tell the user to run `/pixelvault-setup`.
 
-These endpoints need a **secret** key (`pv_live_...`). Publishable keys get a 403. `upgrade` and `billing` need a **live** key: `pv_test_...` keys are refused too.
+These endpoints need a **secret** key (`pv_live_...`). Publishable keys get a 403. `upgrade` and `billing` need a **live** key: `pv_test_...` keys are refused too. Webhooks require Starter or Pro.
 
 ## Check usage (do this before bulk uploads)
 
@@ -64,6 +64,30 @@ Only **secret** keys can be revoked (a publishable key id returns not found). Th
 
 The self-revoke guard is best-effort. If you lock yourself out, the user can recover with **Regenerate** in the dashboard.
 
+## Manage webhooks
+
+Use webhooks when an API integration should receive the final result instead of polling a video:
+
+```bash
+# create: stdout is ONLY the one-time signing secret
+SECRET=$(pixelvault webhooks create https://api.example.com/pixelvault-events \
+  --description "social pipeline" --events completed,failed)
+
+pixelvault webhooks list
+pixelvault webhooks update <id> --events completed
+pixelvault webhooks update <id> --pause       # --resume to turn it back on
+pixelvault webhooks deliveries <id> --limit 50
+pixelvault webhooks rotate-secret <id>        # stdout is the replacement secret
+pixelvault webhooks delete <id>
+```
+
+- Starter supports 3 endpoints; Pro supports 10; Free returns `webhooks_require_paid_plan`.
+- Supported events: `video.optimization.completed` and `video.optimization.failed`.
+- Store each `whsec_...` value in the receiving service's secret manager. It is shown only on create/rotation; never paste it into chat, issues, logs, or a repo.
+- Verify `X-PixelVault-Webhook-Signature` against the raw request body with HMAC-SHA256, reject stale `X-PixelVault-Webhook-Timestamp` values, and deduplicate `X-PixelVault-Webhook-Id`. Delivery is at least once.
+- Non-2xx, network failures, and timeouts retry after about 1m, 5m, 30m, and 2h. The 30-day delivery log includes status, attempts, response code and bounded error, never response bodies.
+- `--json` returns the API data object. Prefer it when an agent needs endpoint ids or delivery fields.
+
 ## Upgrade the plan
 
 ```bash
@@ -94,6 +118,9 @@ Prints a Stripe billing-portal URL (`--json` for `{ "url": ... }`). The user ope
 | Revoking the key in use | `cannot_revoke_current_key` (409): switch to another key first |
 | Revoking a publishable key | `not_found` (404): only secret keys are revocable |
 | Publishable key used | 403: use a secret key |
+| Webhooks on Free | `webhooks_require_paid_plan` (402): explain Starter/Pro availability; upgrade only with user approval |
+| Starter 3 / Pro 10 endpoints used | `webhook_limit_reached` (409): delete an endpoint or upgrade |
+| Duplicate endpoint URL | `webhook_url_exists` (409): update the existing webhook |
 | `upgrade` / `billing` with a test key | `test_key_forbidden` (403): use a live `pv_live_...` key |
 | `upgrade` before verifying email | `email_not_verified` (403): verify the email first |
 | `upgrade` with an active subscription | `already_subscribed` (409): use `pixelvault billing` |
@@ -112,13 +139,19 @@ curl -s -H "Authorization: Bearer $PIXELVAULT_API_KEY" https://api.pixelvault.de
 curl -s -X POST -H "Authorization: Bearer $PIXELVAULT_API_KEY" -H "Content-Type: application/json" \
   -d '{"label":"ci","environment":"live"}' https://api.pixelvault.dev/v1/keys
 curl -s -X DELETE -H "Authorization: Bearer $PIXELVAULT_API_KEY" https://api.pixelvault.dev/v1/keys/<id>
+curl -s -H "Authorization: Bearer $PIXELVAULT_API_KEY" https://api.pixelvault.dev/v1/webhooks
+curl -s -X POST -H "Authorization: Bearer $PIXELVAULT_API_KEY" -H "Content-Type: application/json" \
+  -d '{"url":"https://api.example.com/pixelvault-events","events":["video.optimization.completed","video.optimization.failed"]}' \
+  https://api.pixelvault.dev/v1/webhooks   # signing_secret shown once
+curl -s -H "Authorization: Bearer $PIXELVAULT_API_KEY" \
+  https://api.pixelvault.dev/v1/webhooks/<id>/deliveries
 curl -s -X POST -H "Authorization: Bearer $PIXELVAULT_API_KEY" -H "Content-Type: application/json" \
   -d '{"plan":"starter"}' https://api.pixelvault.dev/v1/billing/checkout   # -> { "url": ... }
 curl -s -X POST -H "Authorization: Bearer $PIXELVAULT_API_KEY" https://api.pixelvault.dev/v1/billing/portal   # -> { "url": ... }
 ```
 
-Responses are wrapped in `{"data": ...}`. When piping a created key, extract `data.api_key` straight into a variable or secret store; do not print the response. Docs: <https://pixelvault.dev/docs/#usage>, <https://pixelvault.dev/docs/#keys> and <https://pixelvault.dev/docs/#billing-api>.
+Responses are wrapped in `{"data": ...}`. When piping a created key or webhook, extract `data.api_key` or `data.signing_secret` straight into a secret store; do not print the response. Docs: <https://pixelvault.dev/docs/#usage>, <https://pixelvault.dev/docs/#keys>, <https://pixelvault.dev/docs/#webhooks> and <https://pixelvault.dev/docs/#billing-api>.
 
 ## Report
 
-Summarize usage in plain terms (e.g. "12 of 500 uploads used, 189 MB storage left, resets 2026-11-01"). For keys, show ids, labels, and last-used times, never raw key values. For upgrade/billing, hand the URL to the user and say what happens next (they pay on Stripe, then `pixelvault usage` shows the new plan); never repeat the URL elsewhere.
+Summarize usage in plain terms (e.g. "12 of 500 uploads used, 189 MB storage left, resets 2026-11-01"). For keys, show ids, labels, and last-used times, never raw key values. For webhooks, show ids, URLs, active state, subscriptions, and delivery status; never repeat signing secrets. For upgrade/billing, hand the URL to the user and say what happens next (they pay on Stripe, then `pixelvault usage` shows the new plan); never repeat the URL elsewhere.
