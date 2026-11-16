@@ -1,6 +1,6 @@
 ---
 name: pixelvault-upload
-description: Upload image files, PDFs, MP4 files, or public image/PDF/MP4 URLs to PixelVault and get public or signed CDN URLs back; optionally create a social-ready H.264/AAC fast-start video copy. Use when the user says "upload this image", "host this PDF", "turn this PDF into a link", "host this video", "import this video URL", "give me a URL for this MP4", "make this video social-ready", "prepare this MP4 for social posting", "host this privately", "screenshot this and host it", "attach this screenshot to the PR/issue", or when an image, document, or video artifact needs a shareable link. Ideal for social publishing workflows and attaching artifacts to GitHub PRs, issues, and comments.
+description: Upload image files, PDFs, MP4 files, or public media URLs to PixelVault and get public or signed CDN URLs back; optionally create a social-ready video copy or run a resumable MP4 transcript and storyboard job. Use when the user says "upload this image", "host this PDF", "host this video", "transcribe this video", "make a storyboard", "enrich this MP4", "resume this video job", "make this video social-ready", "host this privately", "screenshot this and host it", or when an image, document, or video artifact needs a shareable link.
 args:
   - name: files
     description: Image, PDF, or MP4 file path(s), public image/PDF/MP4 URL(s), or a glob pattern (e.g. screenshot.png, report.pdf, demo.mp4)
@@ -22,12 +22,13 @@ The `pixelvault` CLI must be installed and configured. If the command is not fou
 npm install -g pixelvault-cli
 ```
 
-Local MP4 uploads require `pixelvault-cli` 0.15.0 or newer; public MP4 URL
-imports require 0.16.0 or newer; private MP4 delivery requires 0.17.0 or newer;
-social-compatibility metadata and warnings require 0.18.0 or newer; converting an
-existing video requires 0.19.0 or newer; one-step `upload --social` requires
-0.20.0 or newer. Upgrade with `npm install -g pixelvault-cli@latest` if
-`pixelvault --version` is older.
+Use `pixelvault-cli` 0.23.1 or newer for the complete video workflow below.
+`enrich-video` first shipped in 0.23.0. Check with `pixelvault --version` and
+upgrade before showing or running an enrichment command:
+
+```bash
+npm install -g pixelvault-cli@latest
+```
 
 If no API key is configured, tell the user to run `/pixelvault-setup` first or set `PIXELVAULT_API_KEY` in their environment.
 
@@ -72,6 +73,25 @@ pixelvault upload demo.mp4 --social --json
 # Convert an existing hosted video (CLI 0.19.0+)
 pixelvault optimize-video vid_abc123
 
+# Upload a local MP4, start transcript + storyboard enrichment, and wait (CLI 0.23.0+)
+pixelvault enrich-video demo.mp4 --json
+
+# Private upload; original and generated artifacts inherit privacy and share signed-link expiry
+pixelvault enrich-video demo.mp4 --private --expires 12h --json
+
+# Existing asset: use the PixelVault video asset ID, never its CDN URL
+pixelvault enrich-video vid_abc123 --json
+
+# Return asset_id and job_id immediately; save both before doing other work
+pixelvault enrich-video demo.mp4 --no-wait --json
+
+# Resume after interruption without uploading again or creating a duplicate running job
+pixelvault enrich-video vid_abc123 --timeout 1200 --json
+
+# URL sources are not accepted directly by enrich-video. Import first, read `id`, then enrich it.
+pixelvault upload "https://media.example.com/demo.mp4" --json
+pixelvault enrich-video vid_from_previous_output --json
+
 # Private image, PDF, or video — returns a signed URL only holders of the link can open
 pixelvault upload mockup.png --private
 pixelvault upload mockup.png --private --expires 7d
@@ -89,13 +109,14 @@ pixelvault upload shot.png --meta env=staging --meta run="$CI_RUN_ID"
 pixelvault upload shot.png --describe --wait --json
 ```
 
-4. **Report** — The CLI prints one CDN URL per line to stdout. Report these URLs back to the user. For images embedded in a page, README, or email, add `--optimized` for a smaller WebP/AVIF variant. PDF URLs always download the original document and reject image transforms. MP4 videos support HTTP range requests and include a generated JPEG `poster_url` in `--json` output when frame extraction succeeds. When the user asks for social publishing, use `pixelvault upload <video.mp4> --social`; it waits and prints the post-ready URL while preserving the original. Add `--json` when both `original_url` and `social_ready_url` are needed. Use `pixelvault optimize-video <id>` only for an existing hosted video. If a normal upload prints `Video compatibility warning`, report the exact warning: the upload succeeded and its original URL works, but do not describe it as social-ready. Public links are permanent and globally cached; images, PDFs, videos, and their completed social-ready copies can use `--private` for expiring signed delivery.
+4. **Report** — The CLI prints one CDN URL per line to stdout; use `--json` for identifiers and artifact metadata. Report an enrichment's `asset_id` and `job_id` as soon as they appear, then its terminal state. On success, return `original` plus only the transcript and storyboard artifacts present in `artifacts`, preserving each artifact's `type`, `privacy`, and expiry. Never construct a URL for a pending or skipped artifact. For a private asset, return only signed URLs and their expiry; never substitute a public URL. `--no-wait` is a successful queued result, not completion. A local timeout does not cancel the server job: retain the IDs and resume with `pixelvault enrich-video <asset_id> --json`. A failed attempt can be retried explicitly; the later attempt has a new job ID. For images embedded in a page, README, or email, add `--optimized`. PDF URLs download original bytes. For social publishing, use `pixelvault upload <video.mp4> --social`; use `pixelvault optimize-video <id>` only for an existing video.
 
 ## Output Contract
 
 - The CLI prints **only URLs** to stdout (one per line)
 - Human-readable messages go to stderr
 - Use `--json` if you need metadata (`id`, `kind`, `mime_type`, `size`, `filename`, and video `original_url`, `social_ready_url`, `poster_url`, dimensions, duration, codecs, `fast_start`, `social_compatible`, `compatibility_warnings`, and `social_optimization`)
+- `enrich-video --json` returns the original-video artifact and available transcript (`text`, `vtt`, `segments`) and storyboard (`index`, `sheet`) artifacts with state, privacy, and expiry data
 
 ## Error Handling
 
@@ -112,6 +133,37 @@ pixelvault upload shot.png --describe --wait --json
 | `optimization_duration_too_long` | Social-ready optimization supports clips up to 60 seconds; report the limit and keep the original URL |
 | `optimization_source_too_large` | Social-ready optimization supports source MP4s up to 100 MB; keep the original URL |
 | `optimization_limit_reached` | Monthly output used: Free 2 min, Starter 30 min, Pro 120 min; report the reset/upgrade choice |
+| `enrichment_duration_too_short` / `enrichment_duration_too_long` | Enrichment accepts MP4 sources from 1 second through 10 minutes; keep the original URL and report the limit |
+| `enrichment_source_too_large` | Enrichment accepts source MP4s up to 100 MB; keep the original URL |
+| `enrichment_limit_reached` | Monthly source-minute quota is exhausted; report the reset/upgrade choice and do not retry in a loop |
+| `enrichment_failed` | Report the safe server failure, preserve `asset_id` and failed `job_id`; retry only when requested, yielding a new job ID |
+| Local timeout | The server job is still queued/running. Report IDs and resume with `pixelvault enrich-video <asset_id> --json` |
+| URL passed to `enrich-video` | Unsupported source. Import with `pixelvault upload <url> --json`, then pass the returned video `id` |
+| Missing transcript on a silent video | Expected: transcript is `skipped` with `reason: no_audio`; return the storyboard if complete |
+
+## Video enrichment workflow
+
+Use this path when the user asks for transcription, captions, searchable segments,
+or a storyboard:
+
+1. Local MP4: run `pixelvault enrich-video <path> --json`. Existing asset: pass its
+   `vid_...` asset ID. For a public URL, import it first with `pixelvault upload
+   <url> --json`, then use the returned ID.
+2. If the work can outlive the current process, add `--no-wait`. Persist and report
+   `asset_id` and `job_id` from the JSON immediately.
+3. Resume with `pixelvault enrich-video <asset_id> --json`; this reuses a queued,
+   running, or complete job. Use `--timeout <seconds>` for a bounded local wait.
+4. Handle `queued`, `running`, `complete`, `failed`, and local timeout separately.
+   Timeout is not cancellation.
+5. Return the original URL plus only existing artifacts. A video with no audio has
+   no transcript artifact but can still have a completed storyboard.
+6. Private artifacts inherit video privacy. Their signed URLs expire; rerun
+   `pixelvault enrich-video <asset_id> --json` when a fresh result set is needed.
+
+Enrichment accepts original MP4 video assets only: 1 second through 10 minutes and
+at most 100 MB. It does not accept image/PDF inputs, a CDN URL in place of an asset
+ID, or non-MP4 containers. It uses the account's existing video-enrichment quota;
+quota failure is terminal until the account resets or changes plan.
 
 ## Examples
 

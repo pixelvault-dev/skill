@@ -23,9 +23,8 @@ dependencies:
 ---
 # PixelVault — Media Hosting for AI Agents
 
-Agent skills for hosting images and MP4 videos: upload a file and get a permanent
-CDN URL back from Claude Code, Codex, Cursor, or **any agent that reads
-`SKILL.md`**.
+Agent skills for hosting images and MP4 videos, creating social-ready copies, and
+running resumable transcript/storyboard enrichment workflows from any agent that reads `SKILL.md`.
 
 [PixelVault](https://pixelvault.dev) is agent-first media hosting for developers
 and AI coding agents. These skills let an agent upload screenshots, diagrams,
@@ -47,7 +46,7 @@ produces media needing a shareable link.
 
 | Skill | Description |
 |-------|-------------|
-| `/pixelvault-upload <file-or-url>` | Upload images or MP4s, get CDN URLs, and make short videos social-ready |
+| `/pixelvault-upload <file-or-url>` | Upload images or MP4s, get CDN URLs, make short videos social-ready, or enrich MP4s with transcripts/storyboards |
 | `/pixelvault-host-image` | Zero-install: host a file or URL with one `curl`, no signup (keyless, 30-day links; add a key for permanent). Published on ClawHub for OpenClaw |
 | `/pixelvault-setup` | Install CLI and configure API key |
 | `/pixelvault-list` | List recently uploaded images, search them by AI description or tag, and describe an already-uploaded image (alt text, OCR, tags; needs `pixelvault-cli` 0.13.0+ for tags/describe) |
@@ -68,7 +67,7 @@ npx skills add pixelvault-dev/skill
 Then, inside your agent:
 
 1. Run `/pixelvault-setup` to configure your API key
-2. Upload media with `/pixelvault-upload screenshot.png`, `/pixelvault-upload demo.mp4`, or `/pixelvault-upload https://media.example.com/demo.mp4`. Ask it to make an MP4 social-ready to get a separate H.264/AAC fast-start URL.
+2. Upload media with `/pixelvault-upload screenshot.png`, `/pixelvault-upload demo.mp4`, or `/pixelvault-upload https://media.example.com/demo.mp4`. Ask it to enrich a local MP4 or existing `vid_...` asset for resumable transcript and storyboard artifacts.
 
 ## Use it from any agent
 
@@ -89,6 +88,7 @@ When you or an agent uploads media:
    or `https://img.pixelvault.dev/proj_abc/vid_xyz.mp4`.
 4. For social publishing, the agent can create a separate H.264/AAC fast-start
    copy without changing the original (up to 100 MB and 60 seconds).
+5. For transcript/storyboard enrichment, the agent exposes the asset and job IDs immediately, waits with a bounded timeout, and can resume later without another upload.
 
 ## Requirements
 
@@ -113,6 +113,10 @@ Uploaded: https://img.pixelvault.dev/proj_abc/vid_xyz.mp4
 
 > Make that uploaded video social-ready
 Optimized: https://img.pixelvault.dev/proj_abc/vid_xyz.social.mp4
+
+> Enrich that video and return its transcript and storyboard; don't wait forever
+Enrichment queued: asset vid_xyz, job ven_xyz
+Completed: original MP4 + text/VTT/JSON transcript + storyboard index/sheets
 
 > /pixelvault-list --json
 [{ "id": "img_xyz", "url": "https://...", "size": 45200, ... }]
