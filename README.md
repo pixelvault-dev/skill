@@ -24,18 +24,18 @@ dependencies:
 ---
 # PixelVault — Media Hosting for AI Agents
 
-Agent skills for hosting images, MP4 videos, and original MP3/WAV/M4A/OGG audio,
-creating social-ready video copies, and running resumable transcript/storyboard
-enrichment workflows from any agent that reads `SKILL.md`.
+Agent skills for hosting images, MP4 videos, and MP3/WAV/M4A/OGG audio,
+creating social-ready video copies, running resumable video transcript/storyboard
+enrichment, and transcribing audio to text/WebVTT/timestamped JSON.
 
 [PixelVault](https://pixelvault.dev) is agent-first media hosting for developers
 and AI coding agents. These skills let an agent upload screenshots, diagrams,
-mockups, generated images, MP4 videos, and original audio and get an instant,
-globally cached CDN URL without a manual dashboard.
+mockups, generated images, MP4 videos, and audio; get instant globally cached
+original URLs, plus optional transcript artifacts, without a manual dashboard.
 
 **When it triggers:** "screenshot this and host it", "upload this image and give
-me the URL", "host this MP4", "give me a URL for this audio", or any task that
-produces media needing a shareable link.
+me the URL", "host this MP4", "give me a URL for this audio", "transcribe this
+podcast", "make captions for this audio", or any task needing hosted media.
 
 ## Why PixelVault for agents
 
@@ -48,7 +48,7 @@ produces media needing a shareable link.
 
 | Skill | Description |
 |-------|-------------|
-| `/pixelvault-upload <file-or-url>` | Upload images, MP4 videos, or original MP3/WAV/M4A/OGG audio; get public/signed CDN URLs; manage lifecycle; or run video optimization/enrichment |
+| `/pixelvault-upload <file-or-url>` | Upload images or video, or host/transcribe MP3/WAV/M4A/OGG audio; get public/signed CDN URLs; manage lifecycle; or run video optimization/enrichment |
 | `/pixelvault-host-image` | Zero-install: host a file or URL with one `curl`, no signup (keyless, 30-day links; add a key for permanent). Published on ClawHub for OpenClaw |
 | `/pixelvault-setup` | Install CLI and configure API key |
 | `/pixelvault-list` | List recently uploaded images, search them by AI description or tag, and describe an already-uploaded image (alt text, OCR, tags; needs `pixelvault-cli` 0.13.0+ for tags/describe) |
@@ -69,7 +69,7 @@ npx skills add pixelvault-dev/skill
 Then, inside your agent:
 
 1. Run `/pixelvault-setup` to configure your API key
-2. Upload media with `/pixelvault-upload screenshot.png`, `/pixelvault-upload demo.mp4`, `/pixelvault-upload episode.ogg`, or a public media URL. Ask it to manage an `aud_...` asset or enrich a local MP4/existing `vid_...` asset.
+2. Upload media with `/pixelvault-upload screenshot.png`, `/pixelvault-upload demo.mp4`, `/pixelvault-upload episode.ogg`, or a public media URL. Ask it to manage or transcribe an `aud_...` asset, or enrich a local MP4/existing `vid_...` asset.
 
 ## Use it from any agent
 
@@ -98,6 +98,7 @@ When you or an agent uploads media:
 - Node.js 20+
 - A PixelVault account. Free tier: **200 MB storage, 500 uploads/month, 1 GB bandwidth, 5 MB per image, and 25 MB per MP4 video**. No credit card or trial expiry.
 - Audio originals have an approved global maximum of **25,000,000 bytes**. This is a byte ceiling, not a plan allowance or reserved capacity.
+- Audio enrichment accepts up to **10 minutes** and shares the existing media-enrichment allowance with video.
 
 ## Examples
 
@@ -124,6 +125,10 @@ Optimized: https://img.pixelvault.dev/proj_abc/vid_xyz.social.mp4
 > Enrich that video and return its transcript and storyboard; don't wait forever
 Enrichment queued: asset vid_xyz, job ven_xyz
 Completed: original MP4 + text/VTT/JSON transcript + storyboard index/sheets
+
+> Transcribe that podcast; return captions and save IDs so I can resume
+Enrichment queued: asset aud_xyz, job aen_xyz
+Completed: original audio + text/VTT/timestamped JSON transcript
 
 > /pixelvault-list --json
 [{ "id": "img_xyz", "url": "https://...", "size": 45200, ... }]
