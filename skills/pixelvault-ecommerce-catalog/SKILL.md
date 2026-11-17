@@ -121,4 +121,4 @@ parameters it doesn't support and serves the original instead of an error.
 - `/pixelvault-upload`: upload options, private links, retries
 - `/pixelvault-transform`: the full parameter reference
 - `/pixelvault-account`: quota and plan before a bulk run
-- Reference: <https://pixelvault.dev/docs/#transforms> and <https://pixelvault.dev/for-ecommerce/>
+- Reference: <https://pixelvault.dev/docs/transforms/> and <https://pixelvault.dev/for-ecommerce/>
