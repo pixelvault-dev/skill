@@ -157,7 +157,7 @@ curl -s -X POST -H "Authorization: Bearer $PIXELVAULT_API_KEY" -H "Content-Type:
 curl -s -X POST -H "Authorization: Bearer $PIXELVAULT_API_KEY" https://api.pixelvault.dev/v1/billing/portal   # -> { "url": ... }
 ```
 
-Responses are wrapped in `{"data": ...}`. When piping a created key or webhook, extract `data.api_key` or `data.signing_secret` straight into a secret store; do not print the response. Docs: <https://pixelvault.dev/docs/#usage>, <https://pixelvault.dev/docs/#keys>, <https://pixelvault.dev/docs/#webhooks> and <https://pixelvault.dev/docs/#billing-api>.
+Responses are wrapped in `{"data": ...}`. When piping a created key or webhook, extract `data.api_key` or `data.signing_secret` straight into a secret store; do not print the response. Docs: <https://pixelvault.dev/docs/limits/#usage>, <https://pixelvault.dev/docs/authentication/#api-keys>, <https://pixelvault.dev/docs/webhooks/> and <https://pixelvault.dev/docs/billing/#api>.
 
 ## Report
 

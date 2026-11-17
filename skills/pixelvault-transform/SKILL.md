@@ -81,4 +81,4 @@ pixelvault get img_xyz -o cut.png -t "segment=foreground"  # download a transpar
 - **A cut-out (`segment`) is PNG, WebP or AVIF — never JPEG.** `fmt=jpg` returns a PNG.
   Width/height snap to a fixed set of steps (e.g. 1500 → 1600).
 - SVG sources are served as-is (not transformed).
-- Full reference: <https://pixelvault.dev/docs/#transforms>
+- Full reference: <https://pixelvault.dev/docs/transforms/>
