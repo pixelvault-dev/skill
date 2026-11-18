@@ -22,10 +22,11 @@ The `pixelvault` CLI must be installed and configured. If the command is not fou
 npm install -g pixelvault-cli
 ```
 
-Use `pixelvault-cli` 0.25.0 or newer for the complete image, PDF, video, audio-hosting,
-and audio-transcription workflows below. `enrich-video` first shipped in 0.23.0;
-audio hosting in 0.24.0; audio transcription in 0.25.0. Check with
-`pixelvault --version` before showing or running these commands:
+Use `pixelvault-cli` 0.26.0 or newer for the complete image, PDF, video, audio-hosting,
+audio-transcription, and branded custom-domain workflows below. `enrich-video` first
+shipped in 0.23.0; audio hosting in 0.24.0; audio transcription in 0.25.0; custom
+domains and `--branded` in 0.26.0. Check with `pixelvault --version` before showing
+or running these commands:
 
 ```bash
 npm install -g pixelvault-cli@latest
@@ -51,6 +52,9 @@ pixelvault upload <file> --folder <folder>
 
 # Multiple files (shell glob)
 pixelvault upload *.png --folder screenshots
+# Prefer the active project's ready custom-domain URL; falls back to the canonical URL
+pixelvault upload shot.png --branded
+
 
 # Smaller WebP/AVIF link for embedding in a page, README or email (CLI 0.8.0+)
 pixelvault upload photo.png --optimized
@@ -135,13 +139,13 @@ pixelvault upload shot.png --meta env=staging --meta run="$CI_RUN_ID"
 pixelvault upload shot.png --describe --wait --json
 ```
 
-4. **Report** — The CLI prints one CDN/artifact URL per line to stdout; use `--json` for identifiers and media metadata. For audio or video enrichment, report `asset_id` and `job_id` immediately, then `queued`, `running`, `complete`, `failed`, or local timeout. Return the original plus only artifact URLs the API supplied, preserving privacy, signed expiry, and asset TTL. Never construct a pending artifact URL or substitute a public URL for a private asset. A local timeout does not cancel the server job.
+4. **Report** — The CLI prints one CDN/artifact URL per line to stdout; use `--json` for identifiers and media metadata. Media JSON keeps canonical `url` and includes optional `branded_url` when the active project has a ready custom domain. Use `--branded` only when the user asks for the branded link; it falls back to canonical when none is ready. For audio or video enrichment, report `asset_id` and `job_id` immediately, then `queued`, `running`, `complete`, `failed`, or local timeout. Return the original plus only artifact URLs the API supplied, preserving privacy, signed expiry, and asset TTL. Never construct a pending artifact URL or substitute a public URL for a private asset. A local timeout does not cancel the server job.
 
 ## Output Contract
 
 - The CLI prints **only URLs** to stdout (one per line)
 - Human-readable messages go to stderr
-- Use `--json` for metadata (`id`, `kind`, `mime_type`, `size`, `filename`; inspected audio `container`, `codec`, `duration_seconds`, `sample_rate`, `channels`; and media job status/artifacts).
+- Use `--json` for metadata (`id`, canonical `url`, optional `branded_url`, `kind`, `mime_type`, `size`, `filename`; inspected audio `container`, `codec`, `duration_seconds`, `sample_rate`, `channels`; and media job status/artifacts).
 - `enrich-video --json` returns the original-video artifact and available transcript (`text`, `vtt`, `segments`) and storyboard (`index`, `sheet`) artifacts. `audio enrich --json` returns the original-audio artifact and available transcript (`text`, `vtt`, `segments`) artifacts—never a storyboard. Both include state, privacy, and signed-link expiry.
 
 ## Error Handling
