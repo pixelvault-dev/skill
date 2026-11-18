@@ -1,21 +1,21 @@
 ---
 name: pixelvault-account
-description: Check PixelVault quota/usage, manage API keys and signed media lifecycle webhooks, and start an upgrade or open the billing portal. Use before a bulk upload ("do I have room for 200 images?", "how much storage is left?", "what plan am I on?"), when the user asks to "list my API keys", "rotate my PixelVault key", "revoke a key", "create a webhook", "notify me when media changes or an asynchronous job finishes", "show webhook failures", "upgrade my PixelVault plan", "change or cancel my subscription", or after a quota/limit error on upload.
+description: Check PixelVault quota/usage, manage API keys, custom domains, and signed media lifecycle webhooks, and start an upgrade or open the billing portal. Use before a bulk upload ("do I have room for 200 images?", "how much storage is left?", "what plan am I on?"), when the user asks to "list my API keys", "rotate my PixelVault key", "revoke a key", "use my own media domain", "configure a branded URL", "create a webhook", "notify me when media changes or an asynchronous job finishes", "show webhook failures", "upgrade my PixelVault plan", "change or cancel my subscription", or after a quota/limit error on upload.
 args:
   - name: action
-    description: What to do - usage, keys, webhooks list/create/update/delete/deliveries/rotate-secret, upgrade <starter|pro>, or billing
+    description: What to do - usage, keys, domains list/add/refresh/delete, webhooks list/create/update/delete/deliveries/rotate-secret, upgrade <starter|pro>, or billing
     required: false
 ---
 
 # PixelVault Account
 
-Check quota and usage, manage API keys and signed media lifecycle webhooks, and start a plan upgrade or open the billing portal.
+Check quota and usage, manage API keys, custom domains, and signed media lifecycle webhooks, and start a plan upgrade or open the billing portal.
 
 ## Prerequisites
 
-Requires `pixelvault-cli` **0.6.0 or newer** for `usage` and `keys`, **0.7.0 or newer** for `upgrade` and `billing`, **0.21.0 or newer** for basic `webhooks`, and **0.22.0 or newer** for all lifecycle event names (`pixelvault --help` should list them). Update with `npm install -g pixelvault-cli@latest`. If the CLI is missing or unconfigured, tell the user to run `/pixelvault-setup`.
+Requires `pixelvault-cli` **0.26.0 or newer** for custom domains and branded URL output, **0.6.0 or newer** for `usage` and `keys`, **0.7.0 or newer** for `upgrade` and `billing`, **0.21.0 or newer** for basic `webhooks`, and **0.22.0 or newer** for all lifecycle event names (`pixelvault --help` should list them). Update with `npm install -g pixelvault-cli@latest`. If the CLI is missing or unconfigured, tell the user to run `/pixelvault-setup`.
 
-These endpoints need a **secret** key (`pv_live_...`). Publishable keys get a 403. `upgrade` and `billing` need a **live** key: `pv_test_...` keys are refused too. Webhooks require Starter or Pro.
+These endpoints need a **secret** key (`pv_live_...`). Publishable keys get a 403. `upgrade`, `billing`, and custom-domain provisioning need a **live** key: `pv_test_...` keys are refused too. Custom domains and webhooks require Starter or Pro.
 
 ## Check usage (do this before bulk uploads)
 
@@ -63,6 +63,26 @@ Only **secret** keys can be revoked (a publishable key id returns not found). Th
 4. Revoke it using the new key: `pixelvault keys revoke <old-id>`.
 
 The self-revoke guard is best-effort. If you lock yourself out, the user can recover with **Regenerate** in the dashboard.
+
+## Manage custom domains
+
+Custom domains attach to the **active project**. The plan limit is account-wide: Starter includes 1 and Pro includes 3.
+
+```bash
+pixelvault domains list
+pixelvault domains add media.example.com
+
+# After adding the returned CNAME (and TXT ownership record, when present):
+pixelvault domains refresh dom_abc123
+
+pixelvault domains delete dom_abc123
+```
+
+- Point the returned CNAME name at `custom.pvcdn.dev`; never proxy or flatten it.
+- Keep refreshing after DNS changes until both hostname and certificate are active. Do not claim readiness from DNS alone.
+- When ready, media API responses include optional `branded_url`. The canonical `url` remains valid. Use `pixelvault upload ... --branded`, `list --branded`, `get ... --branded`, or the corresponding `audio ... --branded` command when the user asks for the custom-hostname link.
+- `branded_url` preserves transform and signed-link query parameters. Never rebuild a private signed URL.
+- Deleting the domain stops custom-hostname serving but does not invalidate canonical `img.pixelvault.dev` URLs.
 
 ## Manage webhooks
 
@@ -126,6 +146,11 @@ Prints a Stripe billing-portal URL (`--json` for `{ "url": ... }`). The user ope
 | Revoking a publishable key | `not_found` (404): only secret keys are revocable |
 | Publishable key used | 403: use a secret key |
 | Webhooks on Free | `webhooks_require_paid_plan` (402): explain Starter/Pro availability; upgrade only with user approval |
+| Custom domains on Free | `custom_domains_require_paid_plan` (402): explain Starter/Pro availability; upgrade only with user approval |
+| Starter 1 / Pro 3 domains used | `custom_domain_limit_reached` (409): delete one or upgrade |
+| Hostname already attached | `custom_domain_exists` / `custom_domain_conflict` (409): inspect the existing domain or Cloudflare ownership |
+| Email not verified | `email_verification_required` (403): verify before provisioning |
+| Provisioning unavailable | `custom_domains_unavailable` / `custom_domain_provisioning_failed`: do not invent DNS records; retry later |
 | Starter 3 / Pro 10 endpoints used | `webhook_limit_reached` (409): delete an endpoint or upgrade |
 | Duplicate endpoint URL | `webhook_url_exists` (409): update the existing webhook |
 | `upgrade` / `billing` with a test key | `test_key_forbidden` (403): use a live `pv_live_...` key |
@@ -146,6 +171,11 @@ curl -s -H "Authorization: Bearer $PIXELVAULT_API_KEY" https://api.pixelvault.de
 curl -s -X POST -H "Authorization: Bearer $PIXELVAULT_API_KEY" -H "Content-Type: application/json" \
   -d '{"label":"ci","environment":"live"}' https://api.pixelvault.dev/v1/keys
 curl -s -X DELETE -H "Authorization: Bearer $PIXELVAULT_API_KEY" https://api.pixelvault.dev/v1/keys/<id>
+curl -s -H "Authorization: Bearer $PIXELVAULT_API_KEY" https://api.pixelvault.dev/v1/custom-domains
+curl -s -X POST -H "Authorization: Bearer $PIXELVAULT_API_KEY" -H "Content-Type: application/json" \
+  -d '{"hostname":"media.example.com"}' https://api.pixelvault.dev/v1/custom-domains
+curl -s -X POST -H "Authorization: Bearer $PIXELVAULT_API_KEY" https://api.pixelvault.dev/v1/custom-domains/<id>/refresh
+curl -s -X DELETE -H "Authorization: Bearer $PIXELVAULT_API_KEY" https://api.pixelvault.dev/v1/custom-domains/<id>
 curl -s -H "Authorization: Bearer $PIXELVAULT_API_KEY" https://api.pixelvault.dev/v1/webhooks
 curl -s -X POST -H "Authorization: Bearer $PIXELVAULT_API_KEY" -H "Content-Type: application/json" \
   -d '{"url":"https://api.example.com/pixelvault-events","events":["video.optimization.completed","video.optimization.failed"]}' \
@@ -161,4 +191,4 @@ Responses are wrapped in `{"data": ...}`. When piping a created key or webhook, 
 
 ## Report
 
-Summarize usage in plain terms (e.g. "12 of 500 uploads used, 189 MB storage left, resets 2026-11-01"). For keys, show ids, labels, and last-used times, never raw key values. For webhooks, show ids, URLs, active state, subscriptions, and delivery status; never repeat signing secrets. For upgrade/billing, hand the URL to the user and say what happens next (they pay on Stripe, then `pixelvault usage` shows the new plan); never repeat the URL elsewhere.
+Summarize usage in plain terms (e.g. "12 of 500 uploads used, 189 MB storage left, resets 2026-11-01"). For keys, show ids, labels, and last-used times, never raw key values. For custom domains, show id, hostname, CNAME target, ownership record when present, and both readiness states; never claim a pending certificate is ready. For webhooks, show ids, URLs, active state, subscriptions, and delivery status; never repeat signing secrets. For upgrade/billing, hand the URL to the user and say what happens next (they pay on Stripe, then `pixelvault usage` shows the new plan); never repeat the URL elsewhere.
