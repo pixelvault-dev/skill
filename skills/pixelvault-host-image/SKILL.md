@@ -54,6 +54,7 @@ jq -r '.data.url as $u | if ($u | test("^https://img\\.pixelvault\\.dev/[^?#]+\\
 | Link lifetime | 30 days (`"temporary": true`) | Permanent |
 | Import from a URL | No | Yes |
 | Private signed links | No | Yes |
+| Change visibility, password share links | No | Yes |
 | Smaller WebP/AVIF link (`data.optimized_url`) | No | Yes (public raster images) |
 
 With a key, public raster uploads (PNG, JPEG, WebP, AVIF) also return `data.optimized_url`: the same image as WebP or AVIF, usually far smaller. Prefer it when the link goes into a page, README or email, and keep `data.url` as the original. It is absent for SVG, GIF and private uploads, so fall back to `data.url`: `jq -r '.data.optimized_url // .data.url'`.
@@ -77,6 +78,71 @@ Use this for short-lived URLs (generated images, expiring CDN links) before
 they disappear. https only. Without a key the API returns `missing_api_key`:
 download the file first, then upload it with the first command.
 
+## Make an uploaded image private or public (key required)
+
+An image or PDF uploaded with a key can switch visibility in either direction.
+Use its `data.id`:
+
+```bash
+curl -sS -X PATCH https://api.pixelvault.dev/v1/images/img_xyz \
+  -H "Authorization: Bearer $PIXELVAULT_API_KEY" \
+  -H "X-PixelVault-Client: pixelvault-skill/host-image" \
+  -H "Content-Type: application/json" \
+  -d '{"visibility":"private"}'
+```
+
+The response is the image, with the new link in `data.url`. A private link is
+signed for 1 hour (`data.signed_expires`); get a fresh one with
+`POST /v1/images/<id>/sign-url` and body `{"expires_in": 3600}`. Send
+`{"visibility":"public"}` to go back. The change moves the file to a new URL:
+
+- **Ask the user before making a public image private.** The old public URL stops
+  working right away (resized versions within about a minute), so every page or
+  message that embeds it breaks. Copies already saved elsewhere cannot be recalled.
+- Making an image public turns off its password share links; making it private
+  again does not bring them back.
+- A file loses its folder on a private → public round trip.
+- Same visibility as now: `200`, nothing changes.
+
+## Password-protected share links (Starter and Pro, key required)
+
+A share link sends one **private** image or MP4 video to a person: they open
+`https://pixelvault.dev/s/shr_…`, type the password, and see it. Public files,
+audio, and PDFs cannot get one. Keep the password out of the command line by
+reading it from an environment variable (this needs `jq`):
+
+```bash
+jq -n '{asset_id: "img_xyz", password: env.SHARE_PASSWORD, expires_in: 604800}' |
+  curl -sS -X POST https://api.pixelvault.dev/v1/share-links \
+    -H "Authorization: Bearer $PIXELVAULT_API_KEY" \
+    -H "X-PixelVault-Client: pixelvault-skill/host-image" \
+    -H "Content-Type: application/json" \
+    --data-binary @-
+```
+
+The link is `data.url` (`https://pixelvault.dev/s/shr_…`). `password` is 8–128
+characters, used as sent; `expires_in` is 3600 to 7776000 seconds (1 hour to 90
+days), default 7 days.
+
+```bash
+# List links, newest first (status: active, expired, revoked); ?asset_id= filters
+curl -sS "https://api.pixelvault.dev/v1/share-links?asset_id=img_xyz" \
+  -H "Authorization: Bearer $PIXELVAULT_API_KEY" \
+  -H "X-PixelVault-Client: pixelvault-skill/host-image"
+
+# Revoke a link now (idempotent)
+curl -sS -X DELETE https://api.pixelvault.dev/v1/share-links/shr_abc123def456 \
+  -H "Authorization: Bearer $PIXELVAULT_API_KEY" \
+  -H "X-PixelVault-Client: pixelvault-skill/host-image"
+```
+
+- **Keep the password secret.** Never put it in chat logs, commit messages, PR or
+  issue comments, logs, or anywhere public, and never next to the link. Have the
+  user set it in an environment variable. PixelVault stores only a hash and never
+  shows it again.
+- Give the user the link and tell them to send the password to the recipient
+  separately, through a different channel.
+
 ## Resize on the fly
 
 Append `?size=<preset>` to the returned URL. No re-upload. This works on keyless
@@ -93,6 +159,8 @@ API key**. On a keyless link they are ignored and the original is served.
 - Formats: JPEG, PNG, GIF, WebP, AVIF, SVG. Max 5 MB per image on the free plan and for keyless uploads, 10 MB on Starter, 15 MB on Pro.
 - `413` file over your plan's cap, `400` with `invalid_file` not a supported image, `429` slow down and retry later.
 - `401` the key is wrong. Unset it to fall back to a keyless upload.
+- Visibility changes: `400 visibility_change_unsupported` (videos and audio keep their visibility), `409 visibility_change_collection` (file is in a collection), `409 visibility_change_conflict` (file changed meanwhile; retry), `403 visibility_change_blocked` (taken down; do not retry), `402 private_limit_reached` (Free plan's 100 private files).
+- Share links: `402 share_links_require_paid_plan` (Free plan), `409 share_asset_not_private` (make it private first, with the user's consent), `400 share_asset_unsupported` (audio or PDF).
 
 ## Rules
 

@@ -1,6 +1,6 @@
 ---
 name: pixelvault-upload
-description: Upload image files, PDFs, MP4 videos, MP3/WAV/M4A/OGG audio, or public media URLs to PixelVault and get public or signed CDN URLs back; optionally create a social-ready video copy, enrich video with transcripts/storyboards, or transcribe audio with resumable text/WebVTT/JSON artifacts. Use when the user says "upload this image", "host this PDF", "host this video", "host this audio", "transcribe this audio", "transcribe this podcast", "create podcast captions", "transcribe this video", "make a storyboard", "enrich this MP4", "resume this media job", "make this video social-ready", "host this privately", "screenshot this and host it", or when a media artifact needs a shareable link.
+description: Upload image files, PDFs, MP4 videos, MP3/WAV/M4A/OGG audio, or public media URLs to PixelVault and get public or signed CDN URLs back; optionally create a social-ready video copy, enrich video with transcripts/storyboards, or transcribe audio with resumable text/WebVTT/JSON artifacts. Also switches an uploaded image or PDF between public and private, and creates password-protected share links to private media. Use when the user says "upload this image", "host this PDF", "host this video", "host this audio", "transcribe this audio", "transcribe this podcast", "create podcast captions", "transcribe this video", "make a storyboard", "enrich this MP4", "resume this media job", "make this video social-ready", "host this privately", "make this image private", "make this public", "share this with a password", "password-protect this link", "screenshot this and host it", or when a media artifact needs a shareable link.
 args:
   - name: files
     description: Image, PDF, MP4, MP3, WAV, M4A, or OGG path(s), public media URL(s), or a glob pattern
@@ -25,8 +25,8 @@ npm install -g pixelvault-cli
 Use `pixelvault-cli` 0.26.0 or newer for the complete image, PDF, video, audio-hosting,
 audio-transcription, and branded custom-domain workflows below. `enrich-video` first
 shipped in 0.23.0; audio hosting in 0.24.0; audio transcription in 0.25.0; custom
-domains and `--branded` in 0.26.0. Check with `pixelvault --version` before showing
-or running these commands:
+domains and `--branded` in 0.26.0. `visibility` and `share-link` need 0.28.0. Check
+with `pixelvault --version` before showing or running these commands:
 
 ```bash
 npm install -g pixelvault-cli@latest
@@ -155,7 +155,7 @@ pixelvault upload shot.png --describe --wait --json
 | `command not found: pixelvault` | Tell user to `npm install -g pixelvault-cli` |
 | `No API key configured` | Tell user to run `/pixelvault-setup` or set `PIXELVAULT_API_KEY` |
 | `401 Unauthorized` | API key is invalid — tell user to run `pixelvault login` |
-| `402 ... private assets` | Free plan's 100-private-asset limit reached — tell the user to delete some or upgrade |
+| `402 ... private assets` / `private_limit_reached` | Free plan's 100-private-asset limit reached (uploads and `visibility <id> private`) — tell the user to delete some or upgrade |
 | `idempotency_key_reuse` | That `--idempotency-key` was already used for a different upload (or visibility, or it expired) — use a new key |
 | `413 Payload Too Large` | Images/PDFs: 5 MB Free, 10 MB Starter, 15 MB Pro. Videos: 25 MB Free, 100 MB Starter, 250 MB Pro. Audio originals/enrichment: approved global 25,000,000-byte maximum (not a plan allowance) |
 | `400 invalid_file` | File bytes are not a supported image, PDF, or valid MP4 |
@@ -173,6 +173,14 @@ pixelvault upload shot.png --describe --wait --json
 | `audio_policy_pending` | The deployment is missing its approved 25,000,000-byte ceiling and has failed closed. Do not retry in a loop |
 | Audio `file_too_large` | Audio originals/enrichment exceed the approved global 25,000,000-byte maximum. URL import uses the same product limit; do not claim a plan allowance |
 | `invalid_audio` / `unsupported_audio_codec` | The bytes are not a supported MP3, PCM/float WAV, AAC M4A, or Opus/Vorbis OGG. Renaming the file does not bypass byte validation |
+| `visibility_change_unsupported` | Videos and audio keep the visibility they were uploaded with. Upload the file again with the wanted visibility |
+| `visibility_change_collection` | The file is in a collection, whose files share one visibility. Upload it again on its own |
+| `visibility_change_conflict` | The file changed or was deleted during the change; nothing moved. Safe to retry |
+| `visibility_change_blocked` | The file was taken down; its visibility cannot change. Do not retry |
+| `share_links_require_paid_plan` (402) | Share links are Starter and Pro only. `pixelvault upgrade starter` prints a checkout URL for the user |
+| `share_asset_not_private` (409) | Share links protect private media only. Ask the user before making the file private |
+| `share_asset_unsupported` (400) | Audio and PDFs cannot get share links |
+| `share_link_not_found` (404) | Unknown, expired, or revoked link, or the asset was deleted. Run `pixelvault share-link list` |
 
 ## Video enrichment workflow
 
@@ -404,6 +412,69 @@ values are signed to the same expiry.
 - Requires a **secret** API key (the default from `pixelvault login` / setup);
   publishable keys can't create private uploads.
 - `--expires` only applies together with `--private`.
+
+## Change an image's visibility
+
+An image or PDF that is already uploaded can switch between public and private
+(CLI 0.28.0+, secret key):
+
+```bash
+pixelvault visibility img_xyz private
+# → https://img.pixelvault.dev/proj_abc/cp/i/img_xyz.png?token=…&expires=…
+pixelvault visibility img_xyz public
+pixelvault visibility img_xyz private --json   # image object: id, url, visibility, signed_expires
+```
+
+stdout is only the new URL. For private files it is signed for 1 hour; run
+`pixelvault get <id>` later for a fresh one. Changing visibility moves the file to
+a new URL:
+
+- **Confirm with the user before making a public file private.** The old public URL
+  stops working right away (resized and converted versions within about a minute),
+  so every page, README, or message that embeds it breaks. Copies already
+  downloaded or cached elsewhere cannot be recalled.
+- Making a file public turns off its password share links. Making it private again
+  does not bring them back.
+- A file loses its folder on a private → public round trip.
+- Asking for the visibility it already has changes nothing. Id, metadata, and AI
+  description stay the same.
+- Images and PDFs only: videos and audio keep the visibility they were uploaded
+  with, and files in a collection share the collection's visibility. Upload again
+  instead.
+- Making a file private counts toward the Free plan's 100 private assets.
+
+## Password-protected share links (Starter and Pro)
+
+A share link sends one private image or MP4 video to a person: they open
+`https://pixelvault.dev/s/shr_…`, type the password, and see the media. Use it when
+the user wants to share something privately with a password; use a signed URL when
+a program or page needs the file. Needs CLI 0.28.0+, a secret key, and a Starter or
+Pro plan (Free returns `402 share_links_require_paid_plan`). Public files, audio, and
+PDFs cannot get share links; make an image private first only if the user agrees.
+
+```bash
+# Password piped from an environment variable: stays out of shell history and process listings
+printf '%s\n' "$SHARE_PASSWORD" | pixelvault share-link create img_xyz --password-stdin --expires 7d
+# → https://pixelvault.dev/s/shr_abc123def456
+
+pixelvault share-link list                      # id, status, asset, expiry, URL
+pixelvault share-link list --asset img_xyz --json
+pixelvault share-link revoke shr_abc123def456   # idempotent; the link stops opening
+```
+
+- Password: 8–128 characters, used as sent. Prefer `--password-stdin`;
+  `--password <p>` is visible in shell history and process listings. With neither
+  flag the CLI prompts on a terminal and fails in a headless run.
+- `--expires`: `1h`, `1d`, `7d` (default), `30d`, or `90d`.
+- `create` prints only the link on stdout; `--json` returns `id`, `url`,
+  `asset_id`, `status`, and `expires_at`.
+- **Keep the password secret.** Never put it in chat logs, commit messages, PR or
+  issue comments, log output, or anywhere public, and never next to the link. Have
+  the user put it in an environment variable, or run `create` themselves so the CLI
+  prompts. PixelVault stores only a hash and never shows it again.
+- Give the user the link and tell them to send the password to the recipient
+  separately, through a different channel.
+- Revoking, deleting the asset, or making it public turns a link off.
 
 ## Embedding in a GitHub PR, issue or README
 
