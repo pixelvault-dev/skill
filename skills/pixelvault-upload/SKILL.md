@@ -405,6 +405,19 @@ values are signed to the same expiry.
   publishable keys can't create private uploads.
 - `--expires` only applies together with `--private`.
 
+## Embedding in a GitHub PR, issue or README
+
+Embed a public `https://img.pixelvault.dev/...` image as `[![alt](URL)](SHARE_URL)`:
+the image shows inline, and clicking it opens its share page instead of the bare
+file. SHARE_URL is the URL with `https://img.pixelvault.dev/` replaced by
+`https://pixelvault.dev/i/`, plus `?utm_source=share&utm_medium=markdown&utm_campaign=skill`.
+Anything else (private/signed links with `?token=`, `--branded` custom-domain URLs,
+SVG, PDF) stays `![alt](URL)`:
+
+```bash
+pixelvault upload shot.png --json | jq -r '.url as $u | if ($u | test("^https://img\\.pixelvault\\.dev/[^?#]+\\.(png|jpe?g|gif|webp|avif)$")) then "[![screenshot](\($u))](\($u | sub("^https://img\\.pixelvault\\.dev/"; "https://pixelvault.dev/i/"))?utm_source=share&utm_medium=markdown&utm_campaign=skill)" else "![screenshot](\($u))" end'
+```
+
 ## Transform an image result
 
 Image URLs support on-the-fly transforms — just append query params (no
