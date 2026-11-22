@@ -34,6 +34,19 @@ Reply with that URL. Open it once (`curl -sI <url>`) if the next step depends on
 
 The `X-PixelVault-Client` header only tells PixelVault which skill made the call (a coarse usage count). Keep it on every request.
 
+## Embedding in a GitHub PR, issue or README
+
+Embed a public `https://img.pixelvault.dev/...` image as `[![alt](URL)](SHARE_URL)`:
+the image shows inline, and clicking it opens its share page instead of the bare
+file. SHARE_URL is the URL with `https://img.pixelvault.dev/` replaced by
+`https://pixelvault.dev/i/`, plus `?utm_source=share&utm_medium=markdown&utm_campaign=skill`.
+Anything else (private/signed links with `?token=`, custom domains, SVG, PDF) stays
+`![alt](URL)`. To print the right Markdown, pipe the upload through:
+
+```bash
+jq -r '.data.url as $u | if ($u | test("^https://img\\.pixelvault\\.dev/[^?#]+\\.(png|jpe?g|gif|webp|avif)$")) then "[![screenshot](\($u))](\($u | sub("^https://img\\.pixelvault\\.dev/"; "https://pixelvault.dev/i/"))?utm_source=share&utm_medium=markdown&utm_campaign=skill)" else "![screenshot](\($u))" end'
+```
+
 ## Keyless vs keyed
 
 | | No key | With `PIXELVAULT_API_KEY` |
