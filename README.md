@@ -48,7 +48,7 @@ podcast", "make captions for this audio", or any task needing hosted media.
 
 | Skill | Description |
 |-------|-------------|
-| `/pixelvault-upload <file-or-url>` | Upload images or video, or host/transcribe MP3/WAV/M4A/OGG audio; get public/signed CDN URLs; manage lifecycle; or run video optimization/enrichment |
+| `/pixelvault-upload <file-or-url>` | Upload images or video, or host/transcribe MP3/WAV/M4A/OGG audio; get public/signed CDN URLs; manage lifecycle; switch an image or PDF between public and private; create password-protected share links (Starter/Pro); or run video optimization/enrichment |
 | `/pixelvault-host-image` | Zero-install: host a file or URL with one `curl`, no signup (keyless, 30-day links; add a key for permanent). Published on ClawHub for OpenClaw |
 | `/pixelvault-setup` | Install CLI and configure API key |
 | `/pixelvault-list` | List recently uploaded images, search them by AI description or tag, and describe an already-uploaded image (alt text, OCR, tags; needs `pixelvault-cli` 0.13.0+ for tags/describe) |
