@@ -25,7 +25,8 @@ npm install -g pixelvault-cli
 Use `pixelvault-cli` 0.26.0 or newer for the complete image, PDF, video, audio-hosting,
 audio-transcription, and branded custom-domain workflows below. `enrich-video` first
 shipped in 0.23.0; audio hosting in 0.24.0; audio transcription in 0.25.0; custom
-domains and `--branded` in 0.26.0. `visibility` and `share-link` need 0.28.0. Check
+domains and `--branded` in 0.26.0. `visibility` and `share-link` need 0.28.0.
+`presets` and `sign-url` (signed private transforms) need 0.29.0. Check
 with `pixelvault --version` before showing or running these commands:
 
 ```bash
@@ -412,6 +413,10 @@ values are signed to the same expiry.
 - Requires a **secret** API key (the default from `pixelvault login` / setup);
   publishable keys can't create private uploads.
 - `--expires` only applies together with `--private`.
+- Need a resized, converted, or watermarked link to a private raster image? Mint a
+  signed transform URL with `pixelvault sign-url <id> --expires 1h -t "w=800&fmt=auto"`
+  (CLI 0.29.0+). Never append query params to an existing signed URL — tampering
+  invalidates the HMAC signature (`403`). PDFs and SVGs reject transform signing.
 
 ## Change an image's visibility
 
@@ -491,8 +496,10 @@ pixelvault upload shot.png --json | jq -r '.url as $u | if ($u | test("^https://
 
 ## Transform an image result
 
-Image URLs support on-the-fly transforms — just append query params (no
-re-upload): `?w=400` (thumbnail), `?fmt=webp`, `?segment=foreground` (transparent
-cut-out), `?saturation=0` (grayscale), `?tile=logo.png` (watermark). PDFs are
+Public image URLs support on-the-fly transforms — append query params (no
+re-upload): `?w=400`, `?dpr=2`, `?trim=border`, `?anim=false`, `?fmt=auto`,
+`?segment=foreground`, `?saturation=0`, `?watermark=img_logo.png`, `?text=DRAFT`,
+or a custom preset `?size=<name>`. For private raster images, mint a signed
+transform link with `pixelvault sign-url <id> -t "..."` (CLI 0.29.0+). PDFs are
 forced downloads and reject every image transform parameter. For the full
-vocabulary use `/pixelvault-transform`.
+vocabulary, custom presets, and strict mode, use `/pixelvault-transform`.
